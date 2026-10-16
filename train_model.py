@@ -7,6 +7,7 @@ This script keeps the final test period out of search, model choice, and fitting
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import math
 import zipfile
@@ -39,6 +40,8 @@ SENSOR_FEATURES = [
 ]
 FEATURE_COLS = SENSOR_FEATURES + ["hour_sin", "hour_cos", "weekday_sin", "weekday_cos"]
 TARGET = "CO(GT)"
+REFERENCE_TARGETS = ["NMHC(GT)", "C6H6(GT)", "NOx(GT)", "NO2(GT)"]
+DATASET_MEASURES = [TARGET, *SENSOR_FEATURES, *REFERENCE_TARGETS]
 RANDOM_STATE = 42
 
 
@@ -51,8 +54,6 @@ def read_source(source: Path) -> pd.DataFrame:
             stream,
             sep=";",
             decimal=",",
-            na_values=[-200, "-200"],
-            usecols=lambda column: column in {"Date", "Time", TARGET, *SENSOR_FEATURES},
         )
 
     if source.suffix.lower() == ".zip":
@@ -70,13 +71,28 @@ def read_source(source: Path) -> pd.DataFrame:
         return read_member(stream, source.name)
 
 
-def prepare_data(source: Path) -> pd.DataFrame:
+def clean_and_audit(source: Path) -> tuple[pd.DataFrame, dict[str, object], pd.DataFrame]:
+    """Normalize the source and return auditable counts before model fitting."""
     frame = read_source(source)
-    keep = ["Date", "Time", TARGET, *SENSOR_FEATURES]
+    source_rows = len(frame)
+    source_columns = [str(column) for column in frame.columns]
+    empty_source_columns = [str(column) for column in frame.columns if frame[column].isna().all()]
+    keep = ["Date", "Time", *DATASET_MEASURES]
     frame = frame[[column for column in keep if column in frame.columns]].copy()
     required = {"Date", "Time", TARGET, *SENSOR_FEATURES}
     if not required.issubset(frame.columns):
         raise ValueError("The source file is missing one or more required Air Quality dataset columns.")
+
+    sentinel_counts: dict[str, int] = {}
+    for column in DATASET_MEASURES:
+        if column not in frame.columns:
+            continue
+        raw_values = frame[column]
+        if not pd.api.types.is_numeric_dtype(raw_values):
+            raw_values = raw_values.astype(str).str.replace(",", ".", regex=False)
+        numeric_values = pd.to_numeric(raw_values, errors="coerce")
+        sentinel_counts[column] = int(numeric_values.eq(-200).sum())
+
     frame["Date"] = pd.to_datetime(frame["Date"], dayfirst=True, errors="coerce")
     def parse_time(value: object) -> pd.Timestamp | pd.NaT:
         if pd.isna(value):
@@ -94,19 +110,224 @@ def prepare_data(source: Path) -> pd.DataFrame:
     frame["timestamp"] = frame["Date"] + pd.to_timedelta(parsed_time.hour, unit="h") + pd.to_timedelta(
         parsed_time.minute, unit="m"
     ) + pd.to_timedelta(parsed_time.second, unit="s")
-    frame = frame.dropna(subset=["timestamp"]).sort_values("timestamp").reset_index(drop=True)
-    for column in [TARGET, *SENSOR_FEATURES]:
+    invalid_timestamp_rows = int(frame["timestamp"].isna().sum())
+    frame = frame.dropna(subset=["timestamp"]).sort_values("timestamp", kind="stable").reset_index(drop=True)
+    duplicate_timestamp_rows = int(frame.duplicated(subset=["timestamp"], keep="first").sum())
+    frame = frame.drop_duplicates(subset=["timestamp"], keep="first").reset_index(drop=True)
+    for column in DATASET_MEASURES:
+        if column not in frame.columns:
+            continue
         values = frame[column]
         if not pd.api.types.is_numeric_dtype(values):
             values = values.astype(str).str.replace(",", ".", regex=False)
         frame[column] = pd.to_numeric(values, errors="coerce").replace(-200, np.nan)
+
     hour = frame["timestamp"].dt.hour
     weekday = frame["timestamp"].dt.dayofweek
     frame["hour_sin"] = np.sin(2 * np.pi * hour / 24.0)
     frame["hour_cos"] = np.cos(2 * np.pi * hour / 24.0)
     frame["weekday_sin"] = np.sin(2 * np.pi * weekday / 7.0)
     frame["weekday_cos"] = np.cos(2 * np.pi * weekday / 7.0)
-    return frame
+
+    role_by_column = {
+        TARGET: "Prediction target",
+        **{column: "Model input" for column in SENSOR_FEATURES},
+        **{column: "Reference pollutant excluded from model inputs" for column in REFERENCE_TARGETS},
+    }
+    missingness = pd.DataFrame(
+        [
+            {
+                "variable": column,
+                "role": role_by_column.get(column, "Source measurement"),
+                "missing_count": int(frame[column].isna().sum()),
+                "missing_percent": float(frame[column].isna().mean() * 100.0),
+                "observed_count": int(frame[column].notna().sum()),
+                "sentinel_minus_200_count": int(sentinel_counts.get(column, 0)),
+            }
+            for column in DATASET_MEASURES
+            if column in frame.columns
+        ]
+    )
+    target_missing_count = int(frame[TARGET].isna().sum())
+    quality = {
+        "source_file": source.name if source.is_file() else source.name,
+        "source_rows": int(source_rows),
+        "source_columns": source_columns,
+        "empty_source_columns": empty_source_columns,
+        "invalid_timestamp_rows_removed": invalid_timestamp_rows,
+        "duplicate_timestamp_rows_removed": duplicate_timestamp_rows,
+        "usable_timestamp_rows": int(len(frame)),
+        "timestamp_start": frame["timestamp"].min().strftime("%Y-%m-%d %H:%M:%S"),
+        "timestamp_end": frame["timestamp"].max().strftime("%Y-%m-%d %H:%M:%S"),
+        "missing_sentinel": -200,
+        "sentinel_counts_by_variable": sentinel_counts,
+        "target_missing_rows_excluded_from_scoring": target_missing_count,
+        "target_observed_rows": int(frame[TARGET].notna().sum()),
+        "outlier_rows_removed": 0,
+        "outlier_policy": "No rows were removed by an automatic outlier rule; no validated physical bounds were supplied.",
+        "feature_imputation": "Median imputation is fitted within each training fold and on development data only.",
+    }
+    return frame, quality, missingness
+
+
+def prepare_data(source: Path) -> pd.DataFrame:
+    """Backward-compatible helper returning the normalized modeling frame."""
+    return clean_and_audit(source)[0]
+
+
+def write_data_profile(
+    frame: pd.DataFrame,
+    quality: dict[str, object],
+    missingness: pd.DataFrame,
+    output_dir: Path,
+) -> None:
+    """Save cleaned-data summaries and charts without copying the source file."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "data_quality_summary.json").write_text(
+        json.dumps(quality, indent=2), encoding="utf-8"
+    )
+    missingness.to_csv(output_dir / "cleaned_missingness.csv", index=False)
+
+    numeric = frame[DATASET_MEASURES].copy()
+    numeric.describe(percentiles=[0.25, 0.5, 0.75]).T.rename_axis("variable").reset_index().to_csv(
+        output_dir / "cleaned_feature_summary.csv", index=False
+    )
+
+    measured_co = frame.dropna(subset=[TARGET]).copy()
+    monthly = (
+        measured_co.assign(month=measured_co["timestamp"].dt.to_period("M").astype(str))
+        .groupby("month", as_index=False)[TARGET]
+        .agg(mean_CO_mg_m3="mean", median_CO_mg_m3="median", records="count")
+    )
+    monthly.to_csv(output_dir / "cleaned_co_by_month.csv", index=False)
+
+    hourly = (
+        measured_co.assign(hour=measured_co["timestamp"].dt.hour)
+        .groupby("hour", as_index=False)[TARGET]
+        .agg(mean_CO_mg_m3="mean", median_CO_mg_m3="median", records="count")
+    )
+    hourly.to_csv(output_dir / "cleaned_co_by_hour.csv", index=False)
+
+    counts, edges = np.histogram(measured_co[TARGET].to_numpy(), bins=20)
+    distribution = pd.DataFrame(
+        {
+            "bin_start_mg_m3": edges[:-1],
+            "bin_end_mg_m3": edges[1:],
+            "bin_center_mg_m3": (edges[:-1] + edges[1:]) / 2.0,
+            "records": counts,
+        }
+    )
+    distribution.to_csv(output_dir / "cleaned_co_distribution.csv", index=False)
+
+    correlation_columns = [TARGET, *SENSOR_FEATURES]
+    frame[correlation_columns].corr(method="pearson").to_csv(
+        output_dir / "cleaned_correlation.csv", index=True, index_label="variable"
+    )
+    write_eda_svg(
+        output_dir / "cleaned_data_eda.svg",
+        monthly=monthly,
+        hourly=hourly,
+        distribution=distribution,
+        missingness=missingness,
+        measured_target_rows=int(frame[TARGET].notna().sum()),
+    )
+
+
+def write_eda_svg(
+    path: Path,
+    monthly: pd.DataFrame,
+    hourly: pd.DataFrame,
+    distribution: pd.DataFrame,
+    missingness: pd.DataFrame,
+    measured_target_rows: int,
+) -> None:
+    """Render a compact, dependency-free figure for the README."""
+    width, height = 1200, 860
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" role="img" aria-labelledby="title desc">',
+        '<title id="title">AirSense cleaned data overview</title>',
+        '<desc id="desc">Four charts show CO concentration distribution, monthly mean CO, average CO by hour, and missing measurements after replacing the dataset missing marker.</desc>',
+        '<rect width="100%" height="100%" fill="#f3f6f4"/>',
+        '<text x="52" y="52" fill="#18312e" font-family="Segoe UI,Arial,sans-serif" font-size="27" font-weight="700">Cleaned data · UCI Air Quality</text>',
+        '<text x="52" y="80" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="14">-200 converted to missing · incomplete timestamps removed · target measured rows only</text>',
+    ]
+
+    def panel(x: int, y: int, title: str, subtitle: str) -> None:
+        parts.append(f'<rect x="{x}" y="{y}" width="536" height="330" rx="14" fill="#ffffff" stroke="#dce5e1"/>')
+        parts.append(f'<text x="{x+24}" y="{y+34}" fill="#18312e" font-family="Segoe UI,Arial,sans-serif" font-size="16" font-weight="700">{html.escape(title)}</text>')
+        parts.append(f'<text x="{x+24}" y="{y+57}" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="12">{html.escape(subtitle)}</text>')
+
+    def chart_axes(x: int, y: int, max_value: float, label: str) -> tuple[float, float, float, float]:
+        left, top, plot_w, plot_h = x + 66, y + 88, 432.0, 194.0
+        for tick in range(5):
+            yy = top + plot_h - tick * plot_h / 4
+            val = max_value * tick / 4
+            parts.append(f'<line x1="{left}" y1="{yy:.1f}" x2="{left+plot_w}" y2="{yy:.1f}" stroke="#e7eeea" stroke-width="1"/>')
+            parts.append(f'<text x="{left-10}" y="{yy+4:.1f}" text-anchor="end" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">{val:.0f}</text>')
+        parts.append(f'<text x="{left+plot_w/2:.1f}" y="{top+plot_h+35}" text-anchor="middle" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="11">{html.escape(label)}</text>')
+        return left, top, plot_w, plot_h
+
+    panel(40, 108, "Measured CO distribution", f"Hourly reference CO · mg/m³ · {measured_target_rows:,} measured records")
+    left, top, plot_w, plot_h = chart_axes(40, 108, max(float(distribution["records"].max()), 1.0), "CO concentration bin (mg/m³)")
+    bar_w = plot_w / max(len(distribution), 1)
+    for index, row in distribution.reset_index(drop=True).iterrows():
+        bar_h = float(row["records"]) / max(float(distribution["records"].max()), 1.0) * plot_h
+        parts.append(f'<rect x="{left+index*bar_w+1:.1f}" y="{top+plot_h-bar_h:.1f}" width="{max(bar_w-2, 1):.1f}" height="{bar_h:.1f}" fill="#2f8273"/>')
+    if len(distribution):
+        for index in [0, len(distribution)//2, len(distribution)-1]:
+            value = float(distribution.iloc[index]["bin_center_mg_m3"])
+            xx = left + (index + 0.5) * bar_w
+            parts.append(f'<text x="{xx:.1f}" y="{top+plot_h+17}" text-anchor="middle" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">{value:.1f}</text>')
+
+    panel(624, 108, "Monthly mean CO", "Reference concentration · mg/m³ · chronological view")
+    left, top, plot_w, plot_h = chart_axes(624, 108, max(float(monthly["mean_CO_mg_m3"].max()) * 1.1, 1.0), "Month")
+    vals = monthly["mean_CO_mg_m3"].to_numpy(dtype=float)
+    if len(vals):
+        hi = max(float(monthly["mean_CO_mg_m3"].max()) * 1.1, 1.0)
+        points = []
+        for index, value in enumerate(vals):
+            xx = left + (index / max(len(vals)-1, 1)) * plot_w
+            yy = top + plot_h - (value / hi) * plot_h
+            points.append(f"{xx:.1f},{yy:.1f}")
+            parts.append(f'<circle cx="{xx:.1f}" cy="{yy:.1f}" r="3.5" fill="#c47a27"/>')
+        parts.append(f'<polyline points="{" ".join(points)}" fill="none" stroke="#c47a27" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>')
+        for index in [0, len(vals)//2, len(vals)-1]:
+            xx = left + (index / max(len(vals)-1, 1)) * plot_w
+            label = str(monthly.iloc[index]["month"])
+            parts.append(f'<text x="{xx:.1f}" y="{top+plot_h+17}" text-anchor="middle" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">{html.escape(label)}</text>')
+
+    panel(40, 470, "Average CO by hour", "Grouped by clock hour · measured target values only")
+    left, top, plot_w, plot_h = chart_axes(40, 470, max(float(hourly["mean_CO_mg_m3"].max()) * 1.1, 1.0), "Hour of day")
+    hour_hi = max(float(hourly["mean_CO_mg_m3"].max()) * 1.1, 1.0)
+    bar_w = plot_w / max(len(hourly), 1)
+    for _, row in hourly.iterrows():
+        index = int(row["hour"])
+        bar_h = float(row["mean_CO_mg_m3"]) / hour_hi * plot_h
+        parts.append(f'<rect x="{left+index*bar_w+2:.1f}" y="{top+plot_h-bar_h:.1f}" width="{max(bar_w-4, 1):.1f}" height="{bar_h:.1f}" rx="2" fill="#2f8273"/>')
+    for hour_mark in [0, 6, 12, 18, 23]:
+        xx = left + (hour_mark + 0.5) * bar_w
+        parts.append(f'<text x="{xx:.1f}" y="{top+plot_h+17}" text-anchor="middle" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">{hour_mark:02d}:00</text>')
+
+    panel(624, 470, "Missing measurements after cleaning", "-200 sentinel converted to missing · counts in timestamped rows")
+    nonzero = missingness.loc[missingness["missing_count"] > 0].sort_values("missing_count", ascending=True).tail(8)
+    left, top, plot_w, plot_h = 716, 558, 410.0, 194.0
+    for tick in range(5):
+        xx = left + tick * plot_w / 4
+        val = float(nonzero["missing_count"].max()) * tick / 4 if not nonzero.empty else 0.0
+        parts.append(f'<line x1="{xx:.1f}" y1="{top}" x2="{xx:.1f}" y2="{top+plot_h}" stroke="#e7eeea" stroke-width="1"/>')
+        parts.append(f'<text x="{xx:.1f}" y="{top+plot_h+17}" text-anchor="middle" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">{val:.0f}</text>')
+    bar_h = plot_h / max(len(nonzero), 1)
+    for index, (_, row) in enumerate(nonzero.iterrows()):
+        yy = top + plot_h - (index + 1) * bar_h
+        bar_w = float(row["missing_count"]) / max(float(nonzero["missing_count"].max()), 1.0) * plot_w
+        parts.append(f'<rect x="{left:.1f}" y="{yy+2:.1f}" width="{bar_w:.1f}" height="{max(bar_h-4, 1):.1f}" fill="#c47a27"/>')
+        variable = str(row["variable"]).replace("(GT)", "").replace("PT08.", "")
+        parts.append(f'<text x="{left-8:.1f}" y="{yy+bar_h/2+3:.1f}" text-anchor="end" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="9">{html.escape(variable)}</text>')
+        parts.append(f'<text x="{left+bar_w+6:.1f}" y="{yy+bar_h/2+4:.1f}" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="10">{int(row["missing_count"]):,}</text>')
+
+    parts.append('<text x="52" y="836" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="11">Source: UCI Machine Learning Repository · Air Quality · data rows with a measured CO target appear in the first three charts.</text>')
+    parts.append('</svg>')
+    path.write_text("\n".join(parts), encoding="utf-8")
 
 
 def ridge_pipeline(alpha: float) -> Pipeline:
@@ -239,10 +460,14 @@ def randomized_extra_trees_search(
     return search.best_estimator_, results
 
 
-def fit_time_safe_stack(
+def fit_expanding_window_stack(
     base_estimators: dict[str, Pipeline], x: pd.DataFrame, y: pd.Series, cv: TimeSeriesSplit
 ) -> tuple[dict[str, Pipeline], Ridge]:
-    """Train the meta-model only on expanding-window out-of-fold predictions."""
+    """Fit a stack from expanding-window OOF predictions.
+
+    Base-estimator hyperparameters are selected on the full training partition
+    before this function runs, so this comparison is not a fully nested stack.
+    """
     oof = np.full((len(x), len(base_estimators)), np.nan, dtype=float)
     split_list = list(cv.split(x))
     for train_indices, valid_indices in split_list:
@@ -252,7 +477,7 @@ def fit_time_safe_stack(
             oof[valid_indices, model_index] = fitted.predict(x.iloc[valid_indices])
     valid_mask = np.isfinite(oof).all(axis=1)
     if valid_mask.sum() < 20:
-        raise ValueError("Not enough time-safe out-of-fold predictions to fit the stack.")
+        raise ValueError("Not enough expanding-window out-of-fold predictions to fit the stack.")
     meta_model = Ridge(alpha=1.0)
     meta_model.fit(oof[valid_mask], y.iloc[np.flatnonzero(valid_mask)])
     fitted_base: dict[str, Pipeline] = {}
@@ -296,7 +521,8 @@ def main() -> None:
     parser.add_argument("--random-iterations", type=int, default=12)
     args = parser.parse_args()
 
-    frame = prepare_data(args.data)
+    frame, data_quality, missingness = clean_and_audit(args.data)
+    write_data_profile(frame, data_quality, missingness, args.output)
     raw_count = len(frame)
     train_end = int(raw_count * 0.70)
     validation_end = int(raw_count * 0.85)
@@ -322,14 +548,14 @@ def main() -> None:
         x_train, y_train, cv, args.random_iterations
     )
 
-    stack_base, stack_meta = fit_time_safe_stack(
+    stack_base, stack_meta = fit_expanding_window_stack(
         {"Ridge baseline": ridge, "Extra Trees": extra_trees}, x_train, y_train, cv
     )
     validation_stack = {"models": stack_base, "meta_model": stack_meta, "base_names": list(stack_base)}
     candidates: dict[str, object] = {
         "Ridge (Bayesian search)": ridge,
         "Extra Trees (randomized search)": extra_trees,
-        "Time-safe stack": validation_stack,
+        "Expanding-window stack": validation_stack,
     }
     selected_name, validation_metrics = evaluate_candidates(
         candidates, validation[FEATURE_COLS], validation[TARGET]
@@ -340,6 +566,8 @@ def main() -> None:
 
     development = pd.concat([train, validation], ignore_index=True)
     x_development, y_development = development[FEATURE_COLS], development[TARGET]
+    baseline_prediction = np.full(len(test), float(y_development.mean()), dtype=float)
+    baseline_metrics = regression_metrics(test[TARGET], baseline_prediction)
     if selected_name == "Ridge (Bayesian search)":
         final_model: object = clone(ridge).fit(x_development, y_development)
         bundle: dict[str, object] = {"kind": "single", "model": final_model}
@@ -347,7 +575,7 @@ def main() -> None:
         final_model = clone(extra_trees).fit(x_development, y_development)
         bundle = {"kind": "single", "model": final_model}
     else:
-        final_base, final_meta = fit_time_safe_stack(
+        final_base, final_meta = fit_expanding_window_stack(
             {"Ridge baseline": ridge, "Extra Trees": extra_trees},
             x_development,
             y_development,
@@ -375,6 +603,13 @@ def main() -> None:
         "Negative raw predictions clipped": int((raw_test_prediction < 0).sum()),
     }
     pd.DataFrame([test_metrics_row]).to_csv(args.output / "evs03_test_metrics.csv", index=False)
+    test_comparison = pd.DataFrame(
+        [
+            {"Model": "Development mean baseline", "Role": "Reference baseline", **baseline_metrics},
+            {"Model": selected_name, "Role": "Selected model", **test_metrics},
+        ]
+    )
+    test_comparison.to_csv(args.output / "evs03_test_comparison.csv", index=False)
     pd.DataFrame(
         {
             "timestamp": test["timestamp"].dt.strftime("%Y-%m-%d %H:%M:%S"),
@@ -412,10 +647,18 @@ def main() -> None:
     manifest = {
         "dataset": "UCI Air Quality dataset, AirQuality.csv",
         "source_url": "https://archive.ics.uci.edu/dataset/360/air+quality",
+        "data_quality_summary": "data_quality_summary.json",
+        "source_rows": int(data_quality["source_rows"]),
+        "timestamped_rows_after_cleaning": int(data_quality["usable_timestamp_rows"]),
+        "invalid_timestamp_rows_removed": int(data_quality["invalid_timestamp_rows_removed"]),
+        "duplicate_timestamp_rows_removed": int(data_quality["duplicate_timestamp_rows_removed"]),
+        "target_missing_rows_excluded_from_scoring": int(data_quality["target_missing_rows_excluded_from_scoring"]),
+        "target_observed_rows": int(data_quality["target_observed_rows"]),
+        "empty_source_columns_ignored": data_quality["empty_source_columns"],
         "target": TARGET,
         "target_units": "mg/m³",
         "features": FEATURE_COLS,
-        "raw_rows": int(raw_count),
+        "timestamped_rows": int(raw_count),
         "source_start": frame["timestamp"].min().strftime("%Y-%m-%d %H:%M:%S"),
         "source_end": frame["timestamp"].max().strftime("%Y-%m-%d %H:%M:%S"),
         "split_method": "chronological 70% train / 15% validation / 15% test by source row order",
@@ -424,9 +667,30 @@ def main() -> None:
         "bayesian_iterations": int(args.bayes_iterations),
         "randomized_search": "RandomizedSearchCV for ExtraTreesRegressor; time-series folds only",
         "randomized_iterations": int(args.random_iterations),
-        "stack": "Ridge + Extra Trees; meta-model fit only on expanding-window OOF predictions",
+        "stack": "Secondary comparison: Ridge + Extra Trees; base hyperparameters selected on the full training partition, then the meta-model fit from expanding-window OOF predictions. Not a fully nested stack.",
         "selected_model": selected_name,
         "test_metrics": test_metrics_row,
+        "test_mean_baseline": {"prediction": float(y_development.mean()), **baseline_metrics},
+        "chronological_windows": {
+            "training": {
+                "rows_before_target_filter": int(train_end),
+                "rows_with_measured_target": int(len(train)),
+                "start": train["timestamp"].min().strftime("%Y-%m-%d %H:%M:%S"),
+                "end": train["timestamp"].max().strftime("%Y-%m-%d %H:%M:%S"),
+            },
+            "validation": {
+                "rows_before_target_filter": int(validation_end - train_end),
+                "rows_with_measured_target": int(len(validation)),
+                "start": validation["timestamp"].min().strftime("%Y-%m-%d %H:%M:%S"),
+                "end": validation["timestamp"].max().strftime("%Y-%m-%d %H:%M:%S"),
+            },
+            "test": {
+                "rows_before_target_filter": int(raw_count - validation_end),
+                "rows_with_measured_target": int(len(test)),
+                "start": test["timestamp"].min().strftime("%Y-%m-%d %H:%M:%S"),
+                "end": test["timestamp"].max().strftime("%Y-%m-%d %H:%M:%S"),
+            },
+        },
     }
     (args.output / "training_manifest.json").write_text(
         json.dumps(manifest, indent=2), encoding="utf-8"

@@ -1,6 +1,17 @@
 {
   "dataset": "UCI Air Quality dataset, AirQuality.csv",
   "source_url": "https://archive.ics.uci.edu/dataset/360/air+quality",
+  "data_quality_summary": "data_quality_summary.json",
+  "source_rows": 9471,
+  "timestamped_rows_after_cleaning": 9357,
+  "invalid_timestamp_rows_removed": 114,
+  "duplicate_timestamp_rows_removed": 0,
+  "target_missing_rows_excluded_from_scoring": 1683,
+  "target_observed_rows": 7674,
+  "empty_source_columns_ignored": [
+    "Unnamed: 15",
+    "Unnamed: 16"
+  ],
   "target": "CO(GT)",
   "target_units": "mg/m\u00b3",
   "features": [
@@ -17,14 +28,16 @@
     "weekday_sin",
     "weekday_cos"
   ],
-  "raw_rows": 9357,
+  "timestamped_rows": 9357,
+  "source_start": "2004-03-10 18:00:00",
+  "source_end": "2005-04-04 14:00:00",
   "split_method": "chronological 70% train / 15% validation / 15% test by source row order",
   "cv_method": "expanding-window TimeSeriesSplit with four folds on training rows only",
   "bayesian_search": "Gaussian-process expected improvement over Ridge alpha (log10 range -3 to 3)",
   "bayesian_iterations": 21,
   "randomized_search": "RandomizedSearchCV for ExtraTreesRegressor; time-series folds only",
   "randomized_iterations": 12,
-  "stack": "Ridge + Extra Trees; meta-model fit only on expanding-window OOF predictions",
+  "stack": "Secondary comparison: Ridge + Extra Trees; base hyperparameters selected on the full training partition, then the meta-model fit from expanding-window OOF predictions. Not a fully nested stack.",
   "selected_model": "Extra Trees (randomized search)",
   "test_metrics": {
     "Model": "Extra Trees (randomized search)",
@@ -37,6 +50,31 @@
     "Test end": "2005-04-04 14:00:00",
     "Negative raw predictions clipped": 0
   },
-  "source_start": "2004-03-10 18:00:00",
-  "source_end": "2005-04-04 14:00:00"
+  "test_mean_baseline": {
+    "prediction": 2.191873015873016,
+    "R\u00b2": -0.027587449670316122,
+    "MAE": 1.0642297543956931,
+    "MSE": 1.7784929141633685,
+    "RMSE": 1.3336014825139362
+  },
+  "chronological_windows": {
+    "training": {
+      "rows_before_target_filter": 6549,
+      "rows_with_measured_target": 5066,
+      "start": "2004-03-10 18:00:00",
+      "end": "2004-12-08 14:00:00"
+    },
+    "validation": {
+      "rows_before_target_filter": 1404,
+      "rows_with_measured_target": 1234,
+      "start": "2004-12-08 15:00:00",
+      "end": "2005-02-05 02:00:00"
+    },
+    "test": {
+      "rows_before_target_filter": 1404,
+      "rows_with_measured_target": 1374,
+      "start": "2005-02-05 03:00:00",
+      "end": "2005-04-04 14:00:00"
+    }
+  }
 }

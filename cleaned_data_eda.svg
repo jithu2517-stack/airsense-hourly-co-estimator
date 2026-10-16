@@ -1,0 +1,157 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="860" viewBox="0 0 1200 860" role="img" aria-labelledby="title desc">
+<title id="title">AirSense cleaned data overview</title>
+<desc id="desc">Four charts show CO concentration distribution, monthly mean CO, average CO by hour, and missing measurements after replacing the dataset missing marker.</desc>
+<rect width="100%" height="100%" fill="#f3f6f4"/>
+<text x="52" y="52" fill="#18312e" font-family="Segoe UI,Arial,sans-serif" font-size="27" font-weight="700">Cleaned data · UCI Air Quality</text>
+<text x="52" y="80" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="14">-200 converted to missing · incomplete timestamps removed · target measured rows only</text>
+<rect x="40" y="108" width="536" height="330" rx="14" fill="#ffffff" stroke="#dce5e1"/>
+<text x="64" y="142" fill="#18312e" font-family="Segoe UI,Arial,sans-serif" font-size="16" font-weight="700">Measured CO distribution</text>
+<text x="64" y="165" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="12">Hourly reference CO · mg/m³ · 7,674 measured records</text>
+<line x1="106" y1="390.0" x2="538.0" y2="390.0" stroke="#e7eeea" stroke-width="1"/>
+<text x="96" y="394.0" text-anchor="end" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">0</text>
+<line x1="106" y1="341.5" x2="538.0" y2="341.5" stroke="#e7eeea" stroke-width="1"/>
+<text x="96" y="345.5" text-anchor="end" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">393</text>
+<line x1="106" y1="293.0" x2="538.0" y2="293.0" stroke="#e7eeea" stroke-width="1"/>
+<text x="96" y="297.0" text-anchor="end" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">786</text>
+<line x1="106" y1="244.5" x2="538.0" y2="244.5" stroke="#e7eeea" stroke-width="1"/>
+<text x="96" y="248.5" text-anchor="end" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">1180</text>
+<line x1="106" y1="196.0" x2="538.0" y2="196.0" stroke="#e7eeea" stroke-width="1"/>
+<text x="96" y="200.0" text-anchor="end" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">1573</text>
+<text x="322.0" y="425.0" text-anchor="middle" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="11">CO concentration bin (mg/m³)</text>
+<rect x="107.0" y="291.7" width="19.6" height="98.3" fill="#2f8273"/>
+<rect x="128.6" y="196.0" width="19.6" height="194.0" fill="#2f8273"/>
+<rect x="150.2" y="202.2" width="19.6" height="187.8" fill="#2f8273"/>
+<rect x="171.8" y="237.6" width="19.6" height="152.4" fill="#2f8273"/>
+<rect x="193.4" y="287.6" width="19.6" height="102.4" fill="#2f8273"/>
+<rect x="215.0" y="313.0" width="19.6" height="77.0" fill="#2f8273"/>
+<rect x="236.6" y="340.7" width="19.6" height="49.3" fill="#2f8273"/>
+<rect x="258.2" y="356.2" width="19.6" height="33.8" fill="#2f8273"/>
+<rect x="279.8" y="371.1" width="19.6" height="18.9" fill="#2f8273"/>
+<rect x="301.4" y="377.8" width="19.6" height="12.2" fill="#2f8273"/>
+<rect x="323.0" y="382.2" width="19.6" height="7.8" fill="#2f8273"/>
+<rect x="344.6" y="385.2" width="19.6" height="4.8" fill="#2f8273"/>
+<rect x="366.2" y="387.2" width="19.6" height="2.8" fill="#2f8273"/>
+<rect x="387.8" y="388.2" width="19.6" height="1.8" fill="#2f8273"/>
+<rect x="409.4" y="388.4" width="19.6" height="1.6" fill="#2f8273"/>
+<rect x="431.0" y="389.3" width="19.6" height="0.7" fill="#2f8273"/>
+<rect x="452.6" y="389.8" width="19.6" height="0.2" fill="#2f8273"/>
+<rect x="474.2" y="389.8" width="19.6" height="0.2" fill="#2f8273"/>
+<rect x="495.8" y="390.0" width="19.6" height="0.0" fill="#2f8273"/>
+<rect x="517.4" y="389.8" width="19.6" height="0.2" fill="#2f8273"/>
+<text x="116.8" y="407.0" text-anchor="middle" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">0.4</text>
+<text x="332.8" y="407.0" text-anchor="middle" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">6.3</text>
+<text x="527.2" y="407.0" text-anchor="middle" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">11.6</text>
+<rect x="624" y="108" width="536" height="330" rx="14" fill="#ffffff" stroke="#dce5e1"/>
+<text x="648" y="142" fill="#18312e" font-family="Segoe UI,Arial,sans-serif" font-size="16" font-weight="700">Monthly mean CO</text>
+<text x="648" y="165" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="12">Reference concentration · mg/m³ · chronological view</text>
+<line x1="690" y1="390.0" x2="1122.0" y2="390.0" stroke="#e7eeea" stroke-width="1"/>
+<text x="680" y="394.0" text-anchor="end" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">0</text>
+<line x1="690" y1="341.5" x2="1122.0" y2="341.5" stroke="#e7eeea" stroke-width="1"/>
+<text x="680" y="345.5" text-anchor="end" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">1</text>
+<line x1="690" y1="293.0" x2="1122.0" y2="293.0" stroke="#e7eeea" stroke-width="1"/>
+<text x="680" y="297.0" text-anchor="end" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">2</text>
+<line x1="690" y1="244.5" x2="1122.0" y2="244.5" stroke="#e7eeea" stroke-width="1"/>
+<text x="680" y="248.5" text-anchor="end" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">2</text>
+<line x1="690" y1="196.0" x2="1122.0" y2="196.0" stroke="#e7eeea" stroke-width="1"/>
+<text x="680" y="200.0" text-anchor="end" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">3</text>
+<text x="906.0" y="425.0" text-anchor="middle" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="11">Month</text>
+<circle cx="690.0" cy="243.1" r="3.5" fill="#c47a27"/>
+<circle cx="723.2" cy="242.3" r="3.5" fill="#c47a27"/>
+<circle cx="756.5" cy="265.6" r="3.5" fill="#c47a27"/>
+<circle cx="789.7" cy="268.2" r="3.5" fill="#c47a27"/>
+<circle cx="822.9" cy="275.6" r="3.5" fill="#c47a27"/>
+<circle cx="856.2" cy="307.9" r="3.5" fill="#c47a27"/>
+<circle cx="889.4" cy="251.3" r="3.5" fill="#c47a27"/>
+<circle cx="922.6" cy="215.3" r="3.5" fill="#c47a27"/>
+<circle cx="955.8" cy="217.9" r="3.5" fill="#c47a27"/>
+<circle cx="989.1" cy="213.6" r="3.5" fill="#c47a27"/>
+<circle cx="1022.3" cy="253.1" r="3.5" fill="#c47a27"/>
+<circle cx="1055.5" cy="255.6" r="3.5" fill="#c47a27"/>
+<circle cx="1088.8" cy="259.0" r="3.5" fill="#c47a27"/>
+<circle cx="1122.0" cy="312.7" r="3.5" fill="#c47a27"/>
+<polyline points="690.0,243.1 723.2,242.3 756.5,265.6 789.7,268.2 822.9,275.6 856.2,307.9 889.4,251.3 922.6,215.3 955.8,217.9 989.1,213.6 1022.3,253.1 1055.5,255.6 1088.8,259.0 1122.0,312.7" fill="none" stroke="#c47a27" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="690.0" y="407.0" text-anchor="middle" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">2004-03</text>
+<text x="922.6" y="407.0" text-anchor="middle" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">2004-10</text>
+<text x="1122.0" y="407.0" text-anchor="middle" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">2005-04</text>
+<rect x="40" y="470" width="536" height="330" rx="14" fill="#ffffff" stroke="#dce5e1"/>
+<text x="64" y="504" fill="#18312e" font-family="Segoe UI,Arial,sans-serif" font-size="16" font-weight="700">Average CO by hour</text>
+<text x="64" y="527" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="12">Grouped by clock hour · measured target values only</text>
+<line x1="106" y1="752.0" x2="538.0" y2="752.0" stroke="#e7eeea" stroke-width="1"/>
+<text x="96" y="756.0" text-anchor="end" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">0</text>
+<line x1="106" y1="703.5" x2="538.0" y2="703.5" stroke="#e7eeea" stroke-width="1"/>
+<text x="96" y="707.5" text-anchor="end" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">1</text>
+<line x1="106" y1="655.0" x2="538.0" y2="655.0" stroke="#e7eeea" stroke-width="1"/>
+<text x="96" y="659.0" text-anchor="end" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">2</text>
+<line x1="106" y1="606.5" x2="538.0" y2="606.5" stroke="#e7eeea" stroke-width="1"/>
+<text x="96" y="610.5" text-anchor="end" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">3</text>
+<line x1="106" y1="558.0" x2="538.0" y2="558.0" stroke="#e7eeea" stroke-width="1"/>
+<text x="96" y="562.0" text-anchor="end" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">4</text>
+<text x="322.0" y="787.0" text-anchor="middle" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="11">Hour of day</text>
+<rect x="108.0" y="667.6" width="14.0" height="84.4" rx="2" fill="#2f8273"/>
+<rect x="126.0" y="682.7" width="14.0" height="69.3" rx="2" fill="#2f8273"/>
+<rect x="144.0" y="700.1" width="14.0" height="51.9" rx="2" fill="#2f8273"/>
+<rect x="162.0" y="710.0" width="14.0" height="42.0" rx="2" fill="#2f8273"/>
+<rect x="180.0" y="716.2" width="14.0" height="35.8" rx="2" fill="#2f8273"/>
+<rect x="198.0" y="718.3" width="14.0" height="33.7" rx="2" fill="#2f8273"/>
+<rect x="216.0" y="708.5" width="14.0" height="43.5" rx="2" fill="#2f8273"/>
+<rect x="234.0" y="666.5" width="14.0" height="85.5" rx="2" fill="#2f8273"/>
+<rect x="252.0" y="618.6" width="14.0" height="133.4" rx="2" fill="#2f8273"/>
+<rect x="270.0" y="611.6" width="14.0" height="140.4" rx="2" fill="#2f8273"/>
+<rect x="288.0" y="630.8" width="14.0" height="121.2" rx="2" fill="#2f8273"/>
+<rect x="306.0" y="645.2" width="14.0" height="106.8" rx="2" fill="#2f8273"/>
+<rect x="324.0" y="649.5" width="14.0" height="102.5" rx="2" fill="#2f8273"/>
+<rect x="342.0" y="648.0" width="14.0" height="104.0" rx="2" fill="#2f8273"/>
+<rect x="360.0" y="651.6" width="14.0" height="100.4" rx="2" fill="#2f8273"/>
+<rect x="378.0" y="655.2" width="14.0" height="96.8" rx="2" fill="#2f8273"/>
+<rect x="396.0" y="644.9" width="14.0" height="107.1" rx="2" fill="#2f8273"/>
+<rect x="414.0" y="619.0" width="14.0" height="133.0" rx="2" fill="#2f8273"/>
+<rect x="432.0" y="589.7" width="14.0" height="162.3" rx="2" fill="#2f8273"/>
+<rect x="450.0" y="575.6" width="14.0" height="176.4" rx="2" fill="#2f8273"/>
+<rect x="468.0" y="588.1" width="14.0" height="163.9" rx="2" fill="#2f8273"/>
+<rect x="486.0" y="629.1" width="14.0" height="122.9" rx="2" fill="#2f8273"/>
+<rect x="504.0" y="658.6" width="14.0" height="93.4" rx="2" fill="#2f8273"/>
+<rect x="522.0" y="663.3" width="14.0" height="88.7" rx="2" fill="#2f8273"/>
+<text x="115.0" y="769.0" text-anchor="middle" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">00:00</text>
+<text x="223.0" y="769.0" text-anchor="middle" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">06:00</text>
+<text x="331.0" y="769.0" text-anchor="middle" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">12:00</text>
+<text x="439.0" y="769.0" text-anchor="middle" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">18:00</text>
+<text x="529.0" y="769.0" text-anchor="middle" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">23:00</text>
+<rect x="624" y="470" width="536" height="330" rx="14" fill="#ffffff" stroke="#dce5e1"/>
+<text x="648" y="504" fill="#18312e" font-family="Segoe UI,Arial,sans-serif" font-size="16" font-weight="700">Missing measurements after cleaning</text>
+<text x="648" y="527" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="12">-200 sentinel converted to missing · counts in timestamped rows</text>
+<line x1="716.0" y1="558" x2="716.0" y2="752.0" stroke="#e7eeea" stroke-width="1"/>
+<text x="716.0" y="769.0" text-anchor="middle" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">0</text>
+<line x1="818.5" y1="558" x2="818.5" y2="752.0" stroke="#e7eeea" stroke-width="1"/>
+<text x="818.5" y="769.0" text-anchor="middle" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">2111</text>
+<line x1="921.0" y1="558" x2="921.0" y2="752.0" stroke="#e7eeea" stroke-width="1"/>
+<text x="921.0" y="769.0" text-anchor="middle" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">4222</text>
+<line x1="1023.5" y1="558" x2="1023.5" y2="752.0" stroke="#e7eeea" stroke-width="1"/>
+<text x="1023.5" y="769.0" text-anchor="middle" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">6332</text>
+<line x1="1126.0" y1="558" x2="1126.0" y2="752.0" stroke="#e7eeea" stroke-width="1"/>
+<text x="1126.0" y="769.0" text-anchor="middle" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="10">8443</text>
+<rect x="716.0" y="729.8" width="17.8" height="20.2" fill="#c47a27"/>
+<text x="708.0" y="742.9" text-anchor="end" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="9">S5(O3)</text>
+<text x="739.8" y="743.9" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="10">366</text>
+<rect x="716.0" y="705.5" width="17.8" height="20.2" fill="#c47a27"/>
+<text x="708.0" y="718.6" text-anchor="end" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="9">RH</text>
+<text x="739.8" y="719.6" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="10">366</text>
+<rect x="716.0" y="681.2" width="17.8" height="20.2" fill="#c47a27"/>
+<text x="708.0" y="694.4" text-anchor="end" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="9">AH</text>
+<text x="739.8" y="695.4" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="10">366</text>
+<rect x="716.0" y="657.0" width="17.8" height="20.2" fill="#c47a27"/>
+<text x="708.0" y="670.1" text-anchor="end" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="9">C6H6</text>
+<text x="739.8" y="671.1" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="10">366</text>
+<rect x="716.0" y="632.8" width="79.6" height="20.2" fill="#c47a27"/>
+<text x="708.0" y="645.9" text-anchor="end" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="9">NOx</text>
+<text x="801.6" y="646.9" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="10">1,639</text>
+<rect x="716.0" y="608.5" width="79.7" height="20.2" fill="#c47a27"/>
+<text x="708.0" y="621.6" text-anchor="end" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="9">NO2</text>
+<text x="801.7" y="622.6" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="10">1,642</text>
+<rect x="716.0" y="584.2" width="81.7" height="20.2" fill="#c47a27"/>
+<text x="708.0" y="597.4" text-anchor="end" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="9">CO</text>
+<text x="803.7" y="598.4" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="10">1,683</text>
+<rect x="716.0" y="560.0" width="410.0" height="20.2" fill="#c47a27"/>
+<text x="708.0" y="573.1" text-anchor="end" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="9">NMHC</text>
+<text x="1132.0" y="574.1" fill="#60736f" font-family="Segoe UI,Arial,sans-serif" font-size="10">8,443</text>
+<text x="52" y="836" fill="#71817d" font-family="Segoe UI,Arial,sans-serif" font-size="11">Source: UCI Machine Learning Repository · Air Quality · data rows with a measured CO target appear in the first three charts.</text>
+</svg>

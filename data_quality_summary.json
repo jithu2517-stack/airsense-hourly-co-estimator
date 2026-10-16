@@ -1,0 +1,53 @@
+{
+  "source_file": "archive.zip",
+  "source_rows": 9471,
+  "source_columns": [
+    "Date",
+    "Time",
+    "CO(GT)",
+    "PT08.S1(CO)",
+    "NMHC(GT)",
+    "C6H6(GT)",
+    "PT08.S2(NMHC)",
+    "NOx(GT)",
+    "PT08.S3(NOx)",
+    "NO2(GT)",
+    "PT08.S4(NO2)",
+    "PT08.S5(O3)",
+    "T",
+    "RH",
+    "AH",
+    "Unnamed: 15",
+    "Unnamed: 16"
+  ],
+  "empty_source_columns": [
+    "Unnamed: 15",
+    "Unnamed: 16"
+  ],
+  "invalid_timestamp_rows_removed": 114,
+  "duplicate_timestamp_rows_removed": 0,
+  "usable_timestamp_rows": 9357,
+  "timestamp_start": "2004-03-10 18:00:00",
+  "timestamp_end": "2005-04-04 14:00:00",
+  "missing_sentinel": -200,
+  "sentinel_counts_by_variable": {
+    "CO(GT)": 1683,
+    "PT08.S1(CO)": 366,
+    "PT08.S2(NMHC)": 366,
+    "PT08.S3(NOx)": 366,
+    "PT08.S4(NO2)": 366,
+    "PT08.S5(O3)": 366,
+    "T": 366,
+    "RH": 366,
+    "AH": 366,
+    "NMHC(GT)": 8443,
+    "C6H6(GT)": 366,
+    "NOx(GT)": 1639,
+    "NO2(GT)": 1642
+  },
+  "target_missing_rows_excluded_from_scoring": 1683,
+  "target_observed_rows": 7674,
+  "outlier_rows_removed": 0,
+  "outlier_policy": "No rows were removed by an automatic outlier rule; no validated physical bounds were supplied.",
+  "feature_imputation": "Median imputation is fitted within each training fold and on development data only."
+}

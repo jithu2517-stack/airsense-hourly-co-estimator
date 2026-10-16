@@ -1,0 +1,14 @@
+variable,role,missing_count,missing_percent,observed_count,sentinel_minus_200_count
+CO(GT),Prediction target,1683,17.986534145559474,7674,1683
+PT08.S1(CO),Model input,366,3.9115100993908305,8991,366
+PT08.S2(NMHC),Model input,366,3.9115100993908305,8991,366
+PT08.S3(NOx),Model input,366,3.9115100993908305,8991,366
+PT08.S4(NO2),Model input,366,3.9115100993908305,8991,366
+PT08.S5(O3),Model input,366,3.9115100993908305,8991,366
+T,Model input,366,3.9115100993908305,8991,366
+RH,Model input,366,3.9115100993908305,8991,366
+AH,Model input,366,3.9115100993908305,8991,366
+NMHC(GT),Reference pollutant excluded from model inputs,8443,90.23191193758683,914,8443
+C6H6(GT),Reference pollutant excluded from model inputs,366,3.9115100993908305,8991,366
+NOx(GT),Reference pollutant excluded from model inputs,1639,17.51629795874746,7718,1639
+NO2(GT),Reference pollutant excluded from model inputs,1642,17.54835951693919,7715,1642

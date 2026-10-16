@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date
 from html import escape
+import json
 from pathlib import Path
 import math
 
@@ -18,6 +19,15 @@ TEST_METRICS_PATH = APP_DIR / "evs03_test_metrics.csv"
 VALIDATION_METRICS_PATH = APP_DIR / "evs03_validation_metrics.csv"
 PREDICTIONS_PATH = APP_DIR / "evs03_test_predictions.csv"
 MANIFEST_PATH = APP_DIR / "training_manifest.json"
+QUALITY_PATH = APP_DIR / "data_quality_summary.json"
+MISSINGNESS_PATH = APP_DIR / "cleaned_missingness.csv"
+CO_DISTRIBUTION_PATH = APP_DIR / "cleaned_co_distribution.csv"
+CO_MONTH_PATH = APP_DIR / "cleaned_co_by_month.csv"
+CO_HOUR_PATH = APP_DIR / "cleaned_co_by_hour.csv"
+CORRELATION_PATH = APP_DIR / "cleaned_correlation.csv"
+TEST_COMPARISON_PATH = APP_DIR / "evs03_test_comparison.csv"
+BAYESIAN_HISTORY_PATH = APP_DIR / "bayesian_search_history.csv"
+RANDOMIZED_RESULTS_PATH = APP_DIR / "randomized_search_results.csv"
 MODEL_SKLEARN_VERSION = "1.6.1"
 
 SENSOR_FIELDS = [
@@ -39,66 +49,72 @@ st.markdown(
     """
     <style>
     :root {
-        --ink: #18312e;
-        --muted: #60736f;
-        --line: #dce5e1;
-        --paper: #f3f6f4;
+        --ink: #1b302c;
+        --muted: #536761;
+        --line: #d8e1dd;
+        --paper: #f5f7f5;
         --surface: #ffffff;
-        --forest: #145f53;
-        --forest-dark: #113c36;
-        --mint: #e4f0eb;
+        --forest: #246052;
+        --forest-dark: #1c453c;
+        --mint: #e8f0ec;
         --amber: #8c5a11;
         --amber-bg: #fff4df;
     }
     html, body, [class*="css"] { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     [data-testid="stAppViewContainer"] { background: var(--paper); color: var(--ink); }
     [data-testid="stHeader"] { background: transparent; }
-    .block-container { max-width: 1420px; padding-top: 1.35rem; padding-bottom: 3.5rem; }
-    [data-testid="stSidebar"] { background: #edf2ef; border-right: 1px solid var(--line); }
-    [data-testid="stSidebar"] > div:first-child { padding-top: 1.3rem; }
+    .block-container { max-width: 1360px; padding-top: 1.25rem; padding-bottom: 3rem; }
+    [data-testid="stSidebar"] { background: #f0f3f1; border-right: 1px solid var(--line); }
+    [data-testid="stSidebar"] > div:first-child { padding-top: 1.15rem; }
     h1, h2, h3, h4 { color: var(--ink); letter-spacing: -0.025em; }
-    h1 { font-size: 2.1rem !important; font-weight: 690 !important; }
-    h2 { font-size: 1.35rem !important; font-weight: 650 !important; }
-    h3 { font-size: 1.05rem !important; font-weight: 650 !important; }
+    h1 { font-size: 1.95rem !important; font-weight: 700 !important; }
+    h2 { font-size: 1.3rem !important; font-weight: 680 !important; }
+    h3 { font-size: 1.04rem !important; font-weight: 670 !important; }
     p, li { color: var(--muted); }
-    [data-testid="stTabs"] [role="tablist"] { gap: .35rem; border-bottom: 1px solid var(--line); }
-    [data-testid="stTabs"] button[role="tab"] { padding: .8rem 1rem; color: var(--muted); font-weight: 620; }
+    [data-testid="stTabs"] [role="tablist"] { gap: .2rem; border-bottom: 1px solid var(--line); overflow-x: auto; }
+    [data-testid="stTabs"] button[role="tab"] { padding: .72rem .9rem; color: var(--muted); font-weight: 620; white-space: nowrap; }
     [data-testid="stTabs"] button[aria-selected="true"] { color: var(--forest); border-bottom-color: var(--forest); }
-    [data-testid="stMetric"] { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.05rem; }
-    [data-testid="stMetricLabel"] p { color: var(--muted); font-size: .79rem; font-weight: 650; letter-spacing: .035em; text-transform: uppercase; }
-    [data-testid="stMetricValue"] { color: var(--ink); font-size: 1.65rem; font-weight: 690; }
+    [data-testid="stTabs"] button[role="tab"]:focus-visible,
+    button:focus-visible, input:focus-visible, [role="combobox"]:focus-visible { outline: 3px solid #4d8979 !important; outline-offset: 2px !important; }
+    [data-testid="stMetric"] { background: transparent; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: .55rem .15rem .75rem; }
+    [data-testid="stMetricLabel"] p { color: var(--muted); font-size: .82rem; font-weight: 580; letter-spacing: 0; text-transform: none; }
+    [data-testid="stMetricValue"] { color: var(--ink); font-size: 1.55rem; font-weight: 690; }
     div[data-testid="stForm"] { border: 0; padding: 0; }
-    div[data-testid="stVerticalBlockBorderWrapper"] { background: var(--surface); border-color: var(--line); border-radius: 14px; }
-    div[data-testid="stButton"] button[kind="primary"], div[data-testid="stFormSubmitButton"] button[kind="primary"] { background: var(--forest); border-color: var(--forest); border-radius: 8px; font-weight: 650; min-height: 2.8rem; }
+    div[data-testid="stVerticalBlockBorderWrapper"] { background: var(--surface); border-color: var(--line); border-radius: 9px; }
+    div[data-testid="stButton"] button[kind="primary"], div[data-testid="stFormSubmitButton"] button[kind="primary"] { background: var(--forest); border-color: var(--forest); border-radius: 6px; font-weight: 650; min-height: 2.8rem; }
     div[data-testid="stButton"] button[kind="primary"]:hover, div[data-testid="stFormSubmitButton"] button[kind="primary"]:hover { background: var(--forest-dark); border-color: var(--forest-dark); }
-    [data-testid="stDataFrame"] { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-    .brand-row { display:flex; align-items:center; gap:.65rem; margin: .2rem 0 1.1rem; }
-    .brand-mark { width:2rem; height:2rem; border-radius:9px; background:var(--forest); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:1rem; font-weight:800; letter-spacing:-.08em; }
-    .brand-name { color:var(--ink); font-weight:720; letter-spacing:-.02em; font-size:1.03rem; }
-    .brand-code { margin-left:auto; color:var(--muted); font-size:.72rem; font-weight:700; letter-spacing:.09em; }
-    .hero { display:flex; justify-content:space-between; align-items:flex-end; gap:2rem; background:var(--forest-dark); color:#fff; padding:1.7rem 1.85rem; border-radius:16px; margin:.4rem 0 1.25rem; }
-    .hero h1 { color:#fff; font-size:2.1rem !important; margin:.35rem 0 .25rem; }
-    .hero p { color:#d4e4de; margin:0; max-width:720px; line-height:1.55; }
-    .eyebrow { color:#a6cec0 !important; font-size:.72rem; font-weight:750; letter-spacing:.13em; text-transform:uppercase; }
-    .hero-side { min-width:205px; padding-left:1.4rem; border-left:1px solid rgba(255,255,255,.24); }
-    .hero-side .small { color:#c0d7cf; font-size:.72rem; font-weight:650; letter-spacing:.07em; text-transform:uppercase; }
-    .hero-side .model { color:#fff; font-size:1.05rem; font-weight:680; margin:.45rem 0 .25rem; }
-    .hero-side .context { color:#c0d7cf; font-size:.78rem; line-height:1.45; }
-    .section-kicker { color:var(--forest); font-size:.7rem; font-weight:750; letter-spacing:.12em; text-transform:uppercase; margin-bottom:.35rem; }
+    [data-testid="stDataFrame"] { border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+    .brand-row { display:flex; align-items:center; gap:.65rem; margin: .15rem 0 .8rem; }
+    .brand-name { color:var(--ink); font-weight:740; letter-spacing:-.025em; font-size:.98rem; }
+    .brand-code { margin-left:auto; color:var(--muted); font-size:.7rem; font-weight:650; letter-spacing:.07em; }
+    .hero { display:flex; justify-content:space-between; align-items:center; gap:2rem; background:var(--surface); color:var(--ink); padding:1.35rem 1.55rem; border:1px solid var(--line); border-left:4px solid var(--forest); border-radius:7px; margin:.3rem 0 1.1rem; }
+    .hero h1 { color:var(--ink); font-size:1.85rem !important; margin:.25rem 0 .3rem; }
+    .hero p { color:var(--muted); margin:0; max-width:720px; line-height:1.55; }
+    .eyebrow { color:var(--forest) !important; font-size:.7rem; font-weight:720; letter-spacing:.095em; text-transform:uppercase; }
+    .hero-side { min-width:205px; padding-left:1.25rem; border-left:1px solid var(--line); }
+    .hero-side .small { color:var(--muted); font-size:.7rem; font-weight:650; letter-spacing:.045em; text-transform:uppercase; }
+    .hero-side .model { color:var(--ink); font-size:1rem; font-weight:680; margin:.35rem 0 .2rem; }
+    .hero-side .context { color:var(--muted); font-size:.77rem; line-height:1.45; }
+    .section-kicker { color:var(--forest); font-size:.69rem; font-weight:720; letter-spacing:.075em; text-transform:uppercase; margin-bottom:.35rem; }
     .section-copy { color:var(--muted); font-size:.9rem; line-height:1.55; margin-top:-.15rem; margin-bottom:1rem; }
     .field-title { color:var(--ink); font-size:.82rem; font-weight:680; margin:.15rem 0 .15rem; }
     .field-unit { color:var(--muted); font-size:.7rem; margin:0 0 .3rem; }
-    .estimate-panel { background:#eaf2ee; border:1px solid #cfdfd8; border-radius:13px; padding:1.25rem 1.3rem; margin:.2rem 0 .85rem; }
-    .estimate-label { color:var(--forest); font-size:.72rem; font-weight:750; letter-spacing:.09em; text-transform:uppercase; }
-    .estimate-value { color:var(--forest-dark); font-size:2.55rem; font-weight:730; letter-spacing:-.055em; line-height:1.1; margin:.5rem 0 .3rem; }
+    .estimate-panel { background:var(--mint); border:1px solid #cfdfd8; border-radius:7px; padding:1.1rem 1.2rem; margin:.2rem 0 .85rem; }
+    .estimate-label { color:var(--forest); font-size:.7rem; font-weight:720; letter-spacing:.065em; text-transform:uppercase; }
+    .estimate-value { color:var(--forest-dark); font-size:2.35rem; font-weight:730; letter-spacing:-.045em; line-height:1.1; margin:.45rem 0 .3rem; }
     .estimate-unit { color:var(--muted); font-size:.88rem; font-weight:560; letter-spacing:0; }
     .estimate-time { color:var(--muted); font-size:.78rem; }
-    .quiet-note { background:#edf2ef; border-left:3px solid #83a99b; border-radius:0 8px 8px 0; padding:.75rem .85rem; color:#435c56; font-size:.82rem; line-height:1.5; }
+    .quiet-note { background:#eef2ef; border-left:3px solid #73998b; border-radius:0 5px 5px 0; padding:.72rem .82rem; color:#40554f; font-size:.82rem; line-height:1.5; }
     .source-note { color:#73827e; font-size:.75rem; line-height:1.5; }
+    @media (max-width: 1050px) {
+        .block-container { padding-left:1.15rem; padding-right:1.15rem; }
+        .hero { gap:1.2rem; }
+    }
     @media (max-width: 800px) {
         .hero { align-items:flex-start; flex-direction:column; gap:1rem; padding:1.35rem; }
-        .hero-side { border-left:0; border-top:1px solid rgba(255,255,255,.24); padding:1rem 0 0; width:100%; }
-        .hero h1 { font-size:1.7rem !important; }
+        .hero-side { border-left:0; border-top:1px solid var(--line); padding:1rem 0 0; width:100%; }
+        .hero h1 { font-size:1.65rem !important; }
+        [data-testid="stTabs"] [role="tablist"] { justify-content:flex-start; }
     }
     </style>
     """,
@@ -122,6 +138,16 @@ def load_optional_csv(path: Path) -> pd.DataFrame | None:
     try:
         return load_csv(str(path))
     except Exception:
+        return None
+
+
+@st.cache_data
+def load_optional_json(path: Path) -> dict | None:
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
         return None
 
 
@@ -160,12 +186,12 @@ def render_header(bundle: dict, test_metrics: pd.DataFrame | None) -> None:
             '<div class="context">Same-hour estimate · offline model</div></div>'
         )
     st.markdown(
-        '<div class="brand-row"><span class="brand-mark">A</span>'
-        '<span class="brand-name">AirSense</span><span class="brand-code">EVS—03</span></div>'
+        '<div class="brand-row"><span class="brand-name">AirSense</span>'
+        '<span class="brand-code">EVS-03 · RESEARCH DEMO</span></div>'
         '<div class="hero"><div><div class="eyebrow">Sensor array · CO regression</div>'
-        '<h1>Read the hour. Estimate CO.</h1>'
-        '<p>A same-hour carbon monoxide estimate from five sensor channels and local weather readings. '
-        'Built for exploring a trained model on historical measurements.</p></div>'
+        '<h1>Hourly CO estimation</h1>'
+        '<p>Estimate the same-hour reference concentration from five sensor channels and weather readings. '
+        'This interface explores a model trained on historical measurements.</p></div>'
         f'{right}</div>',
         unsafe_allow_html=True,
     )
@@ -193,6 +219,13 @@ except Exception as exc:
 test_metrics = load_optional_csv(TEST_METRICS_PATH)
 validation_metrics = load_optional_csv(VALIDATION_METRICS_PATH)
 test_predictions = load_optional_csv(PREDICTIONS_PATH)
+test_comparison = load_optional_csv(TEST_COMPARISON_PATH)
+quality_summary = load_optional_json(QUALITY_PATH)
+missingness = load_optional_csv(MISSINGNESS_PATH)
+co_distribution = load_optional_csv(CO_DISTRIBUTION_PATH)
+co_by_month = load_optional_csv(CO_MONTH_PATH)
+co_by_hour = load_optional_csv(CO_HOUR_PATH)
+correlation = load_optional_csv(CORRELATION_PATH)
 feature_cols = feature_columns(bundle)
 input_ranges = bundle.get("input_ranges", {})
 selected_model = str(bundle.get("selected_model", "Ridge baseline"))
@@ -206,7 +239,9 @@ if sklearn.__version__ != MODEL_SKLEARN_VERSION:
         f"the current environment is using {sklearn.__version__}. Use the pinned requirements for consistent results."
     )
 
-tab_predict, tab_performance, tab_method = st.tabs(["Estimate", "Performance", "Method & data"])
+tab_predict, tab_quality, tab_cleaned, tab_evaluation, tab_method = st.tabs(
+    ["Estimate", "Data quality", "Cleaned data", "Model evaluation", "Method"]
+)
 
 with tab_predict:
     st.markdown('<div class="section-kicker">Prediction workspace</div>', unsafe_allow_html=True)
@@ -397,8 +432,145 @@ with tab_predict:
                 width="stretch",
             )
 
-with tab_performance:
-    st.markdown('<div class="section-kicker">Evaluation</div>', unsafe_allow_html=True)
+with tab_quality:
+    st.markdown('<div class="section-kicker">Data cleaning · 40% of the rubric</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-copy">A transparent cleaning ledger for the supplied UCI file. Every row count below comes from the training workflow.</div>',
+        unsafe_allow_html=True,
+    )
+    if quality_summary:
+        primary_quality_cols = st.columns(3)
+        primary_quality_metrics = [
+            ("Rows in source file", quality_summary.get("source_rows", 0)),
+            ("Usable timestamps", quality_summary.get("usable_timestamp_rows", 0)),
+            ("Measured CO targets", quality_summary.get("target_observed_rows", 0)),
+        ]
+        for column, (label, value) in zip(primary_quality_cols, primary_quality_metrics):
+            column.metric(label, f"{int(value):,}")
+        audit_quality_cols = st.columns(2)
+        audit_quality_metrics = [
+            ("Invalid timestamps removed", quality_summary.get("invalid_timestamp_rows_removed", 0)),
+            ("Duplicate timestamps removed", quality_summary.get("duplicate_timestamp_rows_removed", 0)),
+        ]
+        for column, (label, value) in zip(audit_quality_cols, audit_quality_metrics):
+            column.metric(label, f"{int(value):,}")
+        st.caption(
+            f"Source period: {quality_summary.get('timestamp_start', '—')} to "
+            f"{quality_summary.get('timestamp_end', '—')} · {quality_summary.get('source_file', 'source file')}"
+        )
+
+        marker_counts = quality_summary.get("sentinel_counts_by_variable", {})
+        co_markers = int(marker_counts.get("CO(GT)", 0))
+        st.info(
+            f"The source marker -200 was converted to missing. CO(GT) had {co_markers:,} missing markers; "
+            f"{int(quality_summary.get('target_missing_rows_excluded_from_scoring', 0)):,} rows without measured CO "
+            "were excluded from model fitting and scoring. Missing sensor inputs were retained and imputed "
+            "with training-fold medians."
+        )
+
+        st.markdown("### Cleaning decisions")
+        cleaning_steps = pd.DataFrame(
+            [
+                {"Stage": "Import", "Check": "Read semicolon-delimited values with decimal commas", "Decision": "Convert into numeric columns; ignore fully empty source columns."},
+                {"Stage": "Timestamp", "Check": "Parse date + hour and sort chronologically", "Decision": f"Remove {int(quality_summary.get('invalid_timestamp_rows_removed', 0)):,} invalid timestamp rows and {int(quality_summary.get('duplicate_timestamp_rows_removed', 0)):,} duplicate timestamps."},
+                {"Stage": "Missing markers", "Check": "Count -200 by source measurement", "Decision": "Replace the sentinel with missing values; preserve missing input rows for train-only imputation."},
+                {"Stage": "Target", "Check": "Check CO(GT) availability", "Decision": f"Score only the {int(quality_summary.get('target_observed_rows', 0)):,} rows with measured CO."},
+                {"Stage": "Outliers", "Check": "Review measurements without assumed physical bounds", "Decision": "No rows removed by automatic outlier rules; no validated clipping limits were supplied."},
+                {"Stage": "Leakage control", "Check": "Separate reference pollutants from model inputs", "Decision": "Other pollutant ground-truth columns are retained for audit only and excluded from the model."},
+            ]
+        )
+        st.dataframe(cleaning_steps, hide_index=True, width="stretch")
+
+        if missingness is not None and {"variable", "missing_count", "missing_percent", "role"}.issubset(missingness.columns):
+            st.markdown("### Missingness after timestamp cleaning")
+            st.caption("Counts are shown after converting -200 to missing and removing rows without a usable timestamp.")
+            missing_plot = missingness.copy()
+            missing_plot["short_name"] = missing_plot["variable"].str.replace("(GT)", "", regex=False).str.replace("PT08.", "", regex=False)
+            st.bar_chart(missing_plot, x="short_name", y="missing_count", height=310, y_label="Missing values", color="#c47a27")
+            st.dataframe(
+                missingness.rename(
+                    columns={
+                        "variable": "Source field",
+                        "role": "Role",
+                        "missing_count": "Missing values",
+                        "missing_percent": "Missing (%)",
+                        "observed_count": "Observed values",
+                        "sentinel_minus_200_count": "-200 markers",
+                    }
+                ).round({"Missing (%)": 2}),
+                hide_index=True,
+                width="stretch",
+            )
+        if quality_summary.get("empty_source_columns"):
+            st.caption("Fully empty source columns ignored: " + ", ".join(quality_summary["empty_source_columns"]))
+        download_col1, download_col2 = st.columns(2)
+        with download_col1:
+            st.download_button(
+                "Download cleaning summary",
+                data=json.dumps(quality_summary, indent=2),
+                file_name="airsense_data_quality_summary.json",
+                mime="application/json",
+            )
+        with download_col2:
+            if missingness is not None:
+                st.download_button(
+                    "Download missingness table",
+                    data=missingness.to_csv(index=False),
+                    file_name="airsense_cleaned_missingness.csv",
+                    mime="text/csv",
+                )
+    else:
+        st.warning("Cleaning summary files are not available. Rebuild the model from the supplied source archive.")
+
+with tab_cleaned:
+    st.markdown('<div class="section-kicker">Cleaned-data graphs · 10% of the rubric</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-copy">These summaries are calculated after timestamp cleaning and -200 normalization. CO charts include measured target values only.</div>',
+        unsafe_allow_html=True,
+    )
+    if co_distribution is not None and not co_distribution.empty:
+        st.markdown("### Distribution of measured CO")
+        st.caption("Hourly reference concentration in mg/m³; rows with missing CO are excluded from this chart.")
+        st.bar_chart(
+            co_distribution,
+            x="bin_center_mg_m3",
+            y="records",
+            height=270,
+            x_label="CO concentration (mg/m³)",
+            y_label="Hourly records",
+            color="#2f8273",
+        )
+
+    monthly_col, hourly_col = st.columns(2)
+    with monthly_col:
+        if co_by_month is not None and not co_by_month.empty:
+            st.markdown("### Monthly mean CO")
+            st.caption("Chronological pattern in the cleaned reference measurements.")
+            st.line_chart(co_by_month.set_index("month")[["mean_CO_mg_m3"]], height=280)
+    with hourly_col:
+        if co_by_hour is not None and not co_by_hour.empty:
+            st.markdown("### Mean CO by hour")
+            st.caption("Average concentration by clock hour; this is descriptive, not a forecast.")
+            st.bar_chart(co_by_hour, x="hour", y="mean_CO_mg_m3", height=280, x_label="Hour of day", y_label="Mean CO (mg/m³)", color="#c47a27")
+
+    if correlation is not None and not correlation.empty and "variable" in correlation.columns:
+        st.markdown("### Sensor and target correlations")
+        st.caption("Pearson correlations use available cleaned values pairwise. Correlation shows association, not causation.")
+        correlation_matrix = correlation.set_index("variable").astype(float)
+        st.dataframe(correlation_matrix.round(2), width="stretch")
+
+    with st.expander("Download the four-chart cleaning summary"):
+        st.caption("A standalone vector image is also embedded in the project README.")
+        if (APP_DIR / "cleaned_data_eda.svg").exists():
+            st.download_button(
+                "Download cleaned-data chart (SVG)",
+                data=(APP_DIR / "cleaned_data_eda.svg").read_text(encoding="utf-8"),
+                file_name="airsense_cleaned_data_eda.svg",
+                mime="image/svg+xml",
+            )
+
+with tab_evaluation:
+    st.markdown('<div class="section-kicker">Training, testing & evaluation · 40% of the rubric</div>', unsafe_allow_html=True)
     st.markdown(
         '<div class="section-copy">Model selection uses validation data. The final score comes from a later, '
         'time-ordered test window kept out of fitting and selection.</div>',
@@ -418,6 +590,26 @@ with tab_performance:
             st.caption(f"Selected model: {test_row.get('Model', selected_model)} · Test period: {start} to {end}")
         else:
             st.caption(f"Selected model: {test_row.get('Model', selected_model)} · Units: CO in mg/m³")
+
+    if test_comparison is not None and {"Model", "MAE", "RMSE"}.issubset(test_comparison.columns):
+        st.markdown("### Test score against a simple baseline")
+        st.caption("The baseline predicts the development-period mean CO for every test record. Lower MAE and RMSE are better.")
+        st.bar_chart(
+            test_comparison,
+            x="Model",
+            y="MAE",
+            height=250,
+            x_label="Test-set model",
+            y_label="MAE (mg/m³)",
+            color="#2f8273",
+        )
+        st.dataframe(
+            test_comparison.rename(
+                columns={"MAE": "MAE (mg/m³)", "MSE": "MSE ((mg/m³)²)", "RMSE": "RMSE (mg/m³)"}
+            ).round(4),
+            hide_index=True,
+            width="stretch",
+        )
 
     if test_predictions is not None and {"timestamp", "actual_CO_mg_m3", "predicted_CO_mg_m3"}.issubset(
         test_predictions.columns
@@ -446,6 +638,25 @@ with tab_performance:
                 file_name="airsense_test_predictions.csv",
                 mime="text/csv",
             )
+            residuals = plot_data.dropna(subset=["actual_CO_mg_m3", "predicted_CO_mg_m3"]).copy()
+            residuals["residual_mg_m3"] = residuals["actual_CO_mg_m3"] - residuals["predicted_CO_mg_m3"]
+            if not residuals.empty:
+                residual_counts, residual_edges = np.histogram(residuals["residual_mg_m3"], bins=20)
+                residual_histogram = pd.DataFrame(
+                    {
+                        "Residual bin (mg/m³)": (residual_edges[:-1] + residual_edges[1:]) / 2.0,
+                        "Test records": residual_counts,
+                    }
+                )
+                st.markdown("### Test residual distribution")
+                st.caption("Residual = measured CO − estimated CO; values centered near zero indicate smaller bias.")
+                st.bar_chart(
+                    residual_histogram,
+                    x="Residual bin (mg/m³)",
+                    y="Test records",
+                    height=250,
+                    color="#c47a27",
+                )
 
     if validation_metrics is not None and {"Model", "MAE"}.issubset(validation_metrics.columns):
         st.markdown("### Validation comparison")
@@ -465,6 +676,38 @@ with tab_performance:
     else:
         st.info("Validation comparison file is not available in this project folder.")
 
+    with st.expander("Search and cross-validation evidence"):
+        bayesian_history = load_optional_csv(BAYESIAN_HISTORY_PATH)
+        randomized_results = load_optional_csv(RANDOMIZED_RESULTS_PATH)
+        if bayesian_history is not None and {"iteration", "cv_mae_mg_m3"}.issubset(bayesian_history.columns):
+            st.markdown("#### Bayesian Ridge search")
+            st.caption("Expanding-window time-series CV MAE for each tested regularization value; lower is better.")
+            st.line_chart(bayesian_history.set_index("iteration")[["cv_mae_mg_m3"]], height=230)
+            st.dataframe(
+                bayesian_history.rename(columns={"alpha": "Ridge α", "cv_mae_mg_m3": "CV MAE (mg/m³)"}).round(5),
+                hide_index=True,
+                width="stretch",
+            )
+        if randomized_results is not None and {"iteration", "cv_mae_mg_m3", "parameters"}.issubset(randomized_results.columns):
+            st.markdown("#### Extra Trees randomized search")
+            ordered_search = randomized_results.sort_values("cv_mae_mg_m3", ascending=True).reset_index(drop=True)
+            ordered_search["rank"] = np.arange(1, len(ordered_search) + 1)
+            st.caption("Twelve Extra Trees configurations compared on training-only expanding-window folds.")
+            st.bar_chart(
+                ordered_search,
+                x="rank",
+                y="cv_mae_mg_m3",
+                height=230,
+                x_label="Ranked configuration",
+                y_label="CV MAE (mg/m³)",
+                color="#2f8273",
+            )
+            st.dataframe(
+                ordered_search.rename(columns={"rank": "Rank", "cv_mae_mg_m3": "CV MAE (mg/m³)", "parameters": "Parameters"}),
+                hide_index=True,
+                width="stretch",
+            )
+
 with tab_method:
     st.markdown('<div class="section-kicker">Method & data</div>', unsafe_allow_html=True)
     st.markdown("## A time-aware regression workflow")
@@ -477,15 +720,14 @@ with tab_method:
     stages = [
         ("01", "Chronological split", "70% training · 15% validation · 15% final test, by time."),
         ("02", "Search on training", "Gaussian-process Bayesian search for Ridge; randomized search for Extra Trees."),
-        ("03", "Build a stack", "Ridge and Extra Trees feed a meta-model trained on expanding-window out-of-fold predictions."),
+        ("03", "Compare a stack", "Ridge and Extra Trees feed an expanding-window OOF meta-model; base hyperparameters are selected on the full training period first."),
         ("04", "Select and report", "Validation MAE selects the model; the later test period reports final performance."),
     ]
     for column, (number, heading, description) in zip(process_cols, stages):
         with column:
-            with st.container(border=True):
-                st.markdown(f'<div class="section-kicker">{number}</div>', unsafe_allow_html=True)
-                st.markdown(f"#### {heading}")
-                st.caption(description)
+            st.markdown(f'<div class="section-kicker">Step {number}</div>', unsafe_allow_html=True)
+            st.markdown(f"#### {heading}")
+            st.caption(description)
 
     st.markdown("### Inputs and missing readings")
     st.write(
@@ -503,7 +745,7 @@ with tab_method:
     st.markdown(
         '<div class="source-note">Source: <a href="https://archive.ics.uci.edu/dataset/360/air+quality" target="_blank">'
         'UCI Machine Learning Repository · Air Quality</a> · DOI 10.24432/C59K5F. '
-        'The repository describes the dataset as for research use and excludes commercial use; consult its terms before reuse.</div>',
+        'The UCI page lists CC BY 4.0 and also says commercial use is excluded; treat the data as research-only and check the current terms before reuse.</div>',
         unsafe_allow_html=True,
     )
     if MANIFEST_PATH.exists():
@@ -514,17 +756,16 @@ with tab_method:
                 st.caption("Training manifest could not be read.")
     st.markdown("### Rebuild the model")
     st.code(
-        "python train_model.py --data path/to/archive.zip --output .",
+        "python train_model.py --data path/to/AirQualityUCI.csv --output .",
         language="bash",
     )
     st.caption(
-        "The script writes the model bundle, validation/test metrics, test predictions, search histories, and training manifest."
+        "The script writes cleaning summaries, cleaned-data charts, the model bundle, validation/test metrics, a baseline comparison, search histories, and the training manifest."
     )
 
 with st.sidebar:
     st.markdown(
-        '<div class="brand-row"><span class="brand-mark">A</span>'
-        '<span class="brand-name">AirSense</span></div>',
+        '<div class="brand-row"><span class="brand-name">AirSense</span></div>',
         unsafe_allow_html=True,
     )
     st.caption("EVS-03 · Model card")
