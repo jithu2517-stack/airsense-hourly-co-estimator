@@ -1,0 +1,13 @@
+iteration,cv_mae_mg_m3,parameters
+6,0.29389470495777903,"{""model__max_depth"": 18, ""model__max_features"": 1.0, ""model__min_samples_leaf"": 1, ""model__n_estimators"": 180}"
+5,0.29479089729121766,"{""model__max_depth"": 12, ""model__max_features"": 0.85, ""model__min_samples_leaf"": 1, ""model__n_estimators"": 180}"
+12,0.29491887814680395,"{""model__max_depth"": 12, ""model__max_features"": 0.85, ""model__min_samples_leaf"": 1, ""model__n_estimators"": 120}"
+8,0.2958234102500823,"{""model__max_depth"": null, ""model__max_features"": 0.85, ""model__min_samples_leaf"": 1, ""model__n_estimators"": 240}"
+9,0.29728683366238895,"{""model__max_depth"": null, ""model__max_features"": 0.85, ""model__min_samples_leaf"": 1, ""model__n_estimators"": 120}"
+2,0.3044174842896662,"{""model__max_depth"": 12, ""model__max_features"": 1.0, ""model__min_samples_leaf"": 4, ""model__n_estimators"": 120}"
+10,0.3118847135660844,"{""model__max_depth"": null, ""model__max_features"": 0.7, ""model__min_samples_leaf"": 4, ""model__n_estimators"": 180}"
+4,0.31720978487366147,"{""model__max_depth"": 12, ""model__max_features"": 1.0, ""model__min_samples_leaf"": 8, ""model__n_estimators"": 300}"
+1,0.31733334293066384,"{""model__max_depth"": null, ""model__max_features"": 1.0, ""model__min_samples_leaf"": 8, ""model__n_estimators"": 180}"
+7,0.3268728550798473,"{""model__max_depth"": null, ""model__max_features"": 0.7, ""model__min_samples_leaf"": 8, ""model__n_estimators"": 300}"
+11,0.3288966576981745,"{""model__max_depth"": 8, ""model__max_features"": 0.85, ""model__min_samples_leaf"": 8, ""model__n_estimators"": 240}"
+3,0.32910524245209316,"{""model__max_depth"": 8, ""model__max_features"": 0.85, ""model__min_samples_leaf"": 8, ""model__n_estimators"": 120}"

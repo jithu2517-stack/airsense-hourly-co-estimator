@@ -1,0 +1,2 @@
+Model,R²,MAE,MSE,RMSE,Test samples,Test start,Test end,Negative raw predictions clipped
+Extra Trees (randomized search),0.7830971777748371,0.3548772784566226,0.37540370166378884,0.6127019680593403,1374,2005-02-05 03:00:00,2005-04-04 14:00:00,0

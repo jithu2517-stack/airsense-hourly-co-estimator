@@ -1,0 +1,42 @@
+{
+  "dataset": "UCI Air Quality dataset, AirQuality.csv",
+  "source_url": "https://archive.ics.uci.edu/dataset/360/air+quality",
+  "target": "CO(GT)",
+  "target_units": "mg/m\u00b3",
+  "features": [
+    "PT08.S1(CO)",
+    "PT08.S2(NMHC)",
+    "PT08.S3(NOx)",
+    "PT08.S4(NO2)",
+    "PT08.S5(O3)",
+    "T",
+    "RH",
+    "AH",
+    "hour_sin",
+    "hour_cos",
+    "weekday_sin",
+    "weekday_cos"
+  ],
+  "raw_rows": 9357,
+  "split_method": "chronological 70% train / 15% validation / 15% test by source row order",
+  "cv_method": "expanding-window TimeSeriesSplit with four folds on training rows only",
+  "bayesian_search": "Gaussian-process expected improvement over Ridge alpha (log10 range -3 to 3)",
+  "bayesian_iterations": 21,
+  "randomized_search": "RandomizedSearchCV for ExtraTreesRegressor; time-series folds only",
+  "randomized_iterations": 12,
+  "stack": "Ridge + Extra Trees; meta-model fit only on expanding-window OOF predictions",
+  "selected_model": "Extra Trees (randomized search)",
+  "test_metrics": {
+    "Model": "Extra Trees (randomized search)",
+    "R\u00b2": 0.7830971777748371,
+    "MAE": 0.3548772784566226,
+    "MSE": 0.37540370166378884,
+    "RMSE": 0.6127019680593403,
+    "Test samples": 1374,
+    "Test start": "2005-02-05 03:00:00",
+    "Test end": "2005-04-04 14:00:00",
+    "Negative raw predictions clipped": 0
+  },
+  "source_start": "2004-03-10 18:00:00",
+  "source_end": "2005-04-04 14:00:00"
+}
