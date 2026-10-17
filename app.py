@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import math
 
+import altair as alt
 import joblib
 import numpy as np
 import pandas as pd
@@ -714,6 +715,54 @@ with tab_evaluation:
             residuals = plot_data.dropna(subset=["actual_CO_mg_m3", "predicted_CO_mg_m3"]).copy()
             residuals["residual_mg_m3"] = residuals["actual_CO_mg_m3"] - residuals["predicted_CO_mg_m3"]
             if not residuals.empty:
+                st.markdown("### Measured vs estimated CO")
+                st.caption(
+                    "Each point is one held-out hour. Points above the diagonal are overestimates; "
+                    "points below it are underestimates. Closer to the diagonal means a smaller absolute error."
+                )
+                scatter_max = max(
+                    float(residuals["actual_CO_mg_m3"].max()),
+                    float(residuals["predicted_CO_mg_m3"].max()),
+                    0.1,
+                )
+                scatter_domain = [0.0, scatter_max * 1.02]
+                reference_line = pd.DataFrame(
+                    {
+                        "actual_CO_mg_m3": scatter_domain,
+                        "predicted_CO_mg_m3": scatter_domain,
+                    }
+                )
+                points = (
+                    alt.Chart(residuals)
+                    .mark_circle(size=40, opacity=0.38, color="#2f8273")
+                    .encode(
+                        x=alt.X(
+                            "actual_CO_mg_m3:Q",
+                            title="Measured CO (mg/m³)",
+                            scale=alt.Scale(domain=scatter_domain, nice=False),
+                        ),
+                        y=alt.Y(
+                            "predicted_CO_mg_m3:Q",
+                            title="Estimated CO (mg/m³)",
+                            scale=alt.Scale(domain=scatter_domain, nice=False),
+                        ),
+                        tooltip=[
+                            alt.Tooltip("timestamp:T", title="Hour"),
+                            alt.Tooltip("actual_CO_mg_m3:Q", title="Measured (mg/m³)", format=".3f"),
+                            alt.Tooltip("predicted_CO_mg_m3:Q", title="Estimated (mg/m³)", format=".3f"),
+                            alt.Tooltip("residual_mg_m3:Q", title="Residual (mg/m³)", format="+.3f"),
+                        ],
+                    )
+                )
+                diagonal = (
+                    alt.Chart(reference_line)
+                    .mark_line(color="#8c5a11", strokeDash=[6, 4], strokeWidth=2)
+                    .encode(x="actual_CO_mg_m3:Q", y="predicted_CO_mg_m3:Q")
+                )
+                st.altair_chart(
+                    (points + diagonal).properties(height=350).interactive(),
+                    width="stretch",
+                )
                 residual_counts, residual_edges = np.histogram(residuals["residual_mg_m3"], bins=20)
                 residual_histogram = pd.DataFrame(
                     {
