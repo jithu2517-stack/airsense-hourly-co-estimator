@@ -168,6 +168,10 @@ def format_hour(hour: int) -> str:
     return f"{hour:02d}:00"
 
 
+def format_reading(value: float) -> str:
+    return f"{float(value):,.4f}".rstrip("0").rstrip(".")
+
+
 def render_header(bundle: dict, test_metrics: pd.DataFrame | None) -> None:
     selected_model = str(bundle.get("selected_model", "Ridge baseline"))
     if test_metrics is not None and not test_metrics.empty:
@@ -341,10 +345,16 @@ with tab_predict:
                 input_columns = st.columns(2)
                 for index, (feature, label, default, step, unit) in enumerate(SENSOR_FIELDS):
                     with input_columns[index % 2]:
-                        st.markdown(f'<div class="field-title">{escape(label)}</div>', unsafe_allow_html=True)
-                        st.markdown(f'<div class="field-unit">{escape(unit)}</div>', unsafe_allow_html=True)
+                        bounds = input_ranges.get(feature)
+                        range_note = None
+                        if bounds:
+                            range_note = (
+                                f"Development-data range: {format_reading(bounds['min'])}–"
+                                f"{format_reading(bounds['max'])} {unit}. Values outside this range are allowed, "
+                                "but the estimate may be extrapolative."
+                            )
                         is_missing = st.checkbox(
-                            "Mark this reading missing",
+                            "Reading unavailable",
                             key=f"missing_{feature}",
                             help="The imputer fitted during training supplies the replacement value.",
                         )
@@ -355,8 +365,10 @@ with tab_predict:
                             format="%.4f",
                             disabled=is_missing,
                             key=f"value_{feature}",
-                            label_visibility="collapsed",
+                            help=range_note,
                         )
+                        if range_note:
+                            st.caption(range_note.split(". Values outside")[0])
                         entered_values[feature] = float("nan") if is_missing else float(reading)
 
                 with st.expander("Optional demo comparison limit", expanded=False):
@@ -389,10 +401,11 @@ with tab_predict:
         timestamp = pd.Timestamp(year=selected_date.year, month=selected_date.month, day=selected_date.day, hour=hour)
         missing_features = [name for name, value in entered_values.items() if pd.isna(value)]
         outside_features: list[str] = []
+        feature_labels = {feature: label for feature, label, *_ in SENSOR_FIELDS}
         for name, value in entered_values.items():
             bounds = input_ranges.get(name)
             if bounds and pd.notna(value) and (value < bounds.get("min", value) or value > bounds.get("max", value)):
-                outside_features.append(name)
+                outside_features.append(feature_labels.get(name, name))
         st.session_state.latest_inputs = entered_values.copy()
         st.session_state.prediction_history.append(
             {
