@@ -13,6 +13,18 @@ This is a reproducible model-training project with a local Streamlit demonstrati
 | Graphs after cleaning (10 marks) | `cleaned_data_eda.svg` shows cleaned target distribution, hourly and monthly CO summaries, and feature correlations. The source tables are saved as CSV files. |
 | Training, testing, and evaluation (40 marks) | `training_manifest.json`, validation and test metrics, prediction-level results, baseline comparison, and search histories document the chronological workflow and final held-out results. |
 
+## EVS-03 brief coverage
+
+| Brief objective | What this project does | Scope / evidence |
+| --- | --- | --- |
+| Estimate air quality from hourly sensor readings | Estimates same-hour `CO(GT)` in mg/m³ from five PT08 sensor responses, temperature, relative humidity, absolute humidity, and cyclical hour/weekday features. | Implemented in the saved Extra Trees pipeline and the **Estimate** tab. This is not a next-hour forecast. |
+| Clean and handle missing readings | Converts `-200` markers to missing values, excludes rows with an unmeasured CO target, and median-imputes input features inside each training fold. | Implemented and counted in `data_quality_summary.json` and the **Data quality** tab. |
+| Normalize or scale inputs | The Ridge search pipeline applies fold-fitted `StandardScaler`; the selected Extra Trees model imputes inputs but does not scale them because tree splits do not depend on feature units. | Preprocessing is inside the model pipelines; no full-dataset scaling is used before the time split. |
+| Bayesian optimization and randomized search | Gaussian-process expected improvement searches the Ridge regularization value; randomized search evaluates Extra Trees configurations with expanding-window time-series CV. | Both search histories are saved. Extra Trees was selected using validation MAE; Bayesian Ridge is a secondary comparison. |
+| Cross-validation and stacking | Four expanding-window `TimeSeriesSplit` folds are used on training data. A Ridge/Extra Trees stack is also evaluated using expanding-window out-of-fold predictions. | The stack is secondary and not fully nested; it is not the packaged model. See the methodology note below. |
+| Detect anomalies or sensor drift | The app flags input values outside the model-development range and reports errors over the held-out period. | These are diagnostics only, not a validated anomaly detector or sensor-drift correction. The supplied static dataset has no independent calibration labels or deployment metadata to validate those claims. |
+| Report model performance | Reports R², MAE, MSE, RMSE, and shares of predictions within explicitly stated CO error tolerances. | Metrics are from a later chronological test window; tolerance shares are not generic classification accuracy. |
+
 ## Repository layout
 
 ```text
