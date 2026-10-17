@@ -502,6 +502,12 @@ def regression_metrics(actual: pd.Series, predicted: np.ndarray) -> dict[str, fl
     }
 
 
+def within_tolerance_percent(actual: pd.Series, predicted: np.ndarray, tolerance: float) -> float:
+    """Return the share of predictions whose absolute error is within a stated tolerance."""
+    errors = np.abs(np.asarray(actual, dtype=float) - np.asarray(predicted, dtype=float))
+    return float(np.mean(errors <= tolerance) * 100.0)
+
+
 def evaluate_candidates(
     candidates: dict[str, object], x: pd.DataFrame, y: pd.Series
 ) -> tuple[str, pd.DataFrame]:
@@ -597,16 +603,26 @@ def main() -> None:
     test_metrics_row = {
         "Model": selected_name,
         **test_metrics,
+        "Within ±0.5 mg/m³ (%)": within_tolerance_percent(test[TARGET], test_prediction, 0.5),
+        "Within ±1.0 mg/m³ (%)": within_tolerance_percent(test[TARGET], test_prediction, 1.0),
         "Test samples": int(len(test)),
         "Test start": first_test_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
         "Test end": last_test_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
         "Negative raw predictions clipped": int((raw_test_prediction < 0).sum()),
     }
     pd.DataFrame([test_metrics_row]).to_csv(args.output / "evs03_test_metrics.csv", index=False)
+    baseline_tolerances = {
+        "Within ±0.5 mg/m³ (%)": within_tolerance_percent(test[TARGET], baseline_prediction, 0.5),
+        "Within ±1.0 mg/m³ (%)": within_tolerance_percent(test[TARGET], baseline_prediction, 1.0),
+    }
+    model_tolerances = {
+        "Within ±0.5 mg/m³ (%)": test_metrics_row["Within ±0.5 mg/m³ (%)"],
+        "Within ±1.0 mg/m³ (%)": test_metrics_row["Within ±1.0 mg/m³ (%)"],
+    }
     test_comparison = pd.DataFrame(
         [
-            {"Model": "Development mean baseline", "Role": "Reference baseline", **baseline_metrics},
-            {"Model": selected_name, "Role": "Selected model", **test_metrics},
+            {"Model": "Development mean baseline", "Role": "Reference baseline", **baseline_metrics, **baseline_tolerances},
+            {"Model": selected_name, "Role": "Selected model", **test_metrics, **model_tolerances},
         ]
     )
     test_comparison.to_csv(args.output / "evs03_test_comparison.csv", index=False)

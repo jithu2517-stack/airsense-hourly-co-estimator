@@ -76,12 +76,12 @@ The evaluation preserves time order to better match use on later readings:
 
 ### Held-out test results
 
-| Model | R² | MAE (mg/m³) | RMSE (mg/m³) |
-| --- | ---: | ---: | ---: |
-| Extra Trees (selected) | 0.7831 | 0.3549 | 0.6127 |
-| Development-mean baseline | -0.0276 | 1.0642 | 1.3336 |
+| Model | R² | MAE (mg/m³) | RMSE (mg/m³) | Within ±0.5 mg/m³ | Within ±1.0 mg/m³ |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Extra Trees (selected) | 0.7831 | 0.3549 | 0.6127 | 80.35% | 90.76% |
+| Development-mean baseline | -0.0276 | 1.0642 | 1.3336 | 25.18% | 51.75% |
 
-The baseline predicts the mean CO measured in development data for every test row. Lower MAE and RMSE are better; higher R² is better. Validation scores, which informed model selection, are separate from these final test scores. See `evs03_test_metrics.csv`, `evs03_test_comparison.csv`, and `evs03_test_predictions.csv` for the recorded values and individual residuals.
+The baseline predicts the mean CO measured in development data for every test row. Lower MAE and RMSE are better; higher R² is better. “Within ±0.5” and “within ±1.0” are tolerance-based shares of test predictions, not generic classification accuracy. Validation scores, which informed model selection, are separate from these final test scores. See `evs03_test_metrics.csv`, `evs03_test_comparison.csv`, and `evs03_test_predictions.csv` for the recorded values and individual residuals.
 
 The full split boundaries, row counts, search descriptions, and selected-model metrics are recorded in [`training_manifest.json`](training_manifest.json). `evs03_validation_metrics.csv`, `randomized_search_results.csv`, and `bayesian_search_history.csv` provide supporting selection evidence.
 

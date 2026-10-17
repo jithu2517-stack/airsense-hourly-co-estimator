@@ -239,9 +239,69 @@ if sklearn.__version__ != MODEL_SKLEARN_VERSION:
         f"the current environment is using {sklearn.__version__}. Use the pinned requirements for consistent results."
     )
 
-tab_predict, tab_quality, tab_cleaned, tab_evaluation, tab_method = st.tabs(
-    ["Estimate", "Data quality", "Cleaned data", "Model evaluation", "Method"]
+tab_overview, tab_predict, tab_quality, tab_cleaned, tab_evaluation, tab_method = st.tabs(
+    ["Overview", "Estimate", "Data quality", "Cleaned data", "Model evaluation", "Method"]
 )
+
+with tab_overview:
+    st.markdown('<div class="section-kicker">Project brief · EVS-03</div>', unsafe_allow_html=True)
+    st.markdown("## Same-hour CO estimation from a sensor array")
+    st.markdown(
+        '<div class="section-copy">AirSense estimates the reference analyzer\'s CO(GT) concentration for the same hour '
+        'from five gas-sensor channels, weather readings, and time features. The published score is from a later, '
+        'chronological test window.</div>',
+        unsafe_allow_html=True,
+    )
+
+    if test_metrics is not None and not test_metrics.empty:
+        overview_result = test_metrics.iloc[0]
+        score_columns = st.columns(3)
+        score_columns[0].metric(
+            "Held-out R²",
+            f"{float(overview_result['R²']):.3f}",
+            help="R² measures variance explained; it is not a percent of predictions that are exactly correct.",
+        )
+        score_columns[1].metric("Mean absolute error", f"{float(overview_result['MAE']):.3f} mg/m³")
+        score_columns[2].metric("Held-out records", f"{int(overview_result.get('Test samples', 0)):,}")
+
+        tolerance_columns = st.columns(2)
+        within_half = overview_result.get("Within ±0.5 mg/m³ (%)")
+        within_one = overview_result.get("Within ±1.0 mg/m³ (%)")
+        if pd.notna(within_half) and pd.notna(within_one):
+            tolerance_columns[0].metric("Within ±0.5 mg/m³", f"{float(within_half):.1f}%")
+            tolerance_columns[1].metric("Within ±1.0 mg/m³", f"{float(within_one):.1f}%")
+            st.caption(
+                "These are shares of test predictions inside the stated absolute-error tolerance; they are not a generic accuracy percentage."
+            )
+
+        if test_comparison is not None and not test_comparison.empty:
+            baseline_rows = test_comparison[test_comparison["Role"] == "Reference baseline"]
+            if not baseline_rows.empty:
+                baseline_mae = float(baseline_rows.iloc[0]["MAE"])
+                model_mae = float(overview_result["MAE"])
+                if baseline_mae > 0:
+                    improvement = (baseline_mae - model_mae) / baseline_mae * 100.0
+                    st.markdown(
+                        f"On this test period, the selected model's MAE was **{improvement:.1f}% lower** than the development-mean baseline."
+                    )
+
+    if quality_summary:
+        st.markdown("### Data behind the result")
+        data_columns = st.columns(4)
+        data_summary = [
+            ("Source rows", quality_summary.get("source_rows", 0)),
+            ("Usable timestamps", quality_summary.get("usable_timestamp_rows", 0)),
+            ("Measured CO targets", quality_summary.get("target_observed_rows", 0)),
+            ("Final test records", int(test_metrics.iloc[0].get("Test samples", 0)) if test_metrics is not None and not test_metrics.empty else 0),
+        ]
+        for column, (label, value) in zip(data_columns, data_summary):
+            column.metric(label, f"{int(value):,}")
+
+    st.markdown("### Explore the project")
+    st.caption(
+        "Review the data-quality ledger, cleaned-data graphs, and held-out evaluation before trying a sensor reading. "
+        "This historical-data demo is not a live monitor, AQI conversion, or public-health alert."
+    )
 
 with tab_predict:
     st.markdown('<div class="section-kicker">Prediction workspace</div>', unsafe_allow_html=True)
