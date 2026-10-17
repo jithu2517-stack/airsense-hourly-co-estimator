@@ -763,7 +763,9 @@ with tab_evaluation:
                 file_name="airsense_test_predictions.csv",
                 mime="text/csv",
             )
-            residuals = plot_data.dropna(subset=["actual_CO_mg_m3", "predicted_CO_mg_m3"]).copy()
+            residuals = plot_data.dropna(
+                subset=["timestamp", "actual_CO_mg_m3", "predicted_CO_mg_m3"]
+            ).copy()
             residuals["residual_mg_m3"] = residuals["actual_CO_mg_m3"] - residuals["predicted_CO_mg_m3"]
             if not residuals.empty:
                 st.markdown("### Measured vs estimated CO")
@@ -814,6 +816,40 @@ with tab_evaluation:
                     (points + diagonal).properties(height=350).interactive(),
                     width="stretch",
                 )
+                monthly_errors = (
+                    residuals.assign(month=residuals["timestamp"].dt.strftime("%Y-%m"))
+                    .groupby("month", as_index=False)
+                    .agg(
+                        test_records=("residual_mg_m3", "size"),
+                        mae_mg_m3=("residual_mg_m3", lambda values: float(np.mean(np.abs(values)))),
+                        rmse_mg_m3=("residual_mg_m3", lambda values: float(np.sqrt(np.mean(np.square(values))))),
+                        mean_residual_mg_m3=("residual_mg_m3", "mean"),
+                    )
+                    .rename(
+                        columns={
+                            "month": "Month",
+                            "test_records": "Test records",
+                            "mae_mg_m3": "MAE (mg/m³)",
+                            "rmse_mg_m3": "RMSE (mg/m³)",
+                            "mean_residual_mg_m3": "Mean residual (mg/m³)",
+                        }
+                    )
+                )
+                st.markdown("### Held-out error by month")
+                st.caption(
+                    "Each bar summarizes one month of the chronological test window. A changing error pattern can "
+                    "motivate investigation of data shifts; it does not establish sensor drift or its cause."
+                )
+                st.bar_chart(
+                    monthly_errors,
+                    x="Month",
+                    y="MAE (mg/m³)",
+                    height=250,
+                    x_label="Test month",
+                    y_label="Mean absolute error (mg/m³)",
+                    color="#c47a27",
+                )
+                st.dataframe(monthly_errors.round(3), hide_index=True, width="stretch")
                 residual_counts, residual_edges = np.histogram(residuals["residual_mg_m3"], bins=20)
                 residual_histogram = pd.DataFrame(
                     {
