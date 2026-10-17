@@ -620,7 +620,12 @@ with tab_cleaned:
         if co_by_month is not None and not co_by_month.empty:
             st.markdown("### Monthly mean CO")
             st.caption("Chronological pattern in the cleaned reference measurements.")
-            st.line_chart(co_by_month.set_index("month")[["mean_CO_mg_m3"]], height=280)
+            st.line_chart(
+                co_by_month.set_index("month")[["mean_CO_mg_m3"]],
+                height=280,
+                x_label="Month",
+                y_label="Mean CO (mg/m³)",
+            )
     with hourly_col:
         if co_by_hour is not None and not co_by_hour.empty:
             st.markdown("### Mean CO by hour")
@@ -629,9 +634,55 @@ with tab_cleaned:
 
     if correlation is not None and not correlation.empty and "variable" in correlation.columns:
         st.markdown("### Sensor and target correlations")
-        st.caption("Pearson correlations use available cleaned values pairwise. Correlation shows association, not causation.")
         correlation_matrix = correlation.set_index("variable").astype(float)
-        st.dataframe(correlation_matrix.round(2), width="stretch")
+        correlation_order = [str(name) for name in correlation_matrix.index]
+        correlation_long = (
+            correlation_matrix.rename_axis("row_variable")
+            .reset_index()
+            .melt(id_vars="row_variable", var_name="column_variable", value_name="correlation")
+        )
+        heatmap = (
+            alt.Chart(correlation_long)
+            .mark_rect(stroke="white", strokeWidth=1)
+            .encode(
+                x=alt.X(
+                    "column_variable:N",
+                    sort=correlation_order,
+                    title=None,
+                    axis=alt.Axis(labelAngle=-45, labelLimit=220),
+                ),
+                y=alt.Y("row_variable:N", sort=correlation_order, title=None),
+                color=alt.Color(
+                    "correlation:Q",
+                    title="Pearson r",
+                    scale=alt.Scale(domain=[-1, 1], scheme="redblue"),
+                    legend=alt.Legend(orient="bottom"),
+                ),
+                tooltip=[
+                    alt.Tooltip("row_variable:N", title="Field"),
+                    alt.Tooltip("column_variable:N", title="Compared with"),
+                    alt.Tooltip("correlation:Q", title="Pearson r", format=".2f"),
+                ],
+            )
+        )
+        labels = heatmap.mark_text(fontSize=10).encode(
+            text=alt.Text("correlation:Q", format=".2f"),
+            color=alt.condition(
+                (alt.datum.correlation > 0.55) | (alt.datum.correlation < -0.55),
+                alt.value("white"),
+                alt.value("#1b302c"),
+            ),
+        )
+        st.caption(
+            "Pearson r ranges from −1 to +1. Strong positive and negative associations have larger magnitude; "
+            "correlation does not establish causation."
+        )
+        st.altair_chart(
+            (heatmap + labels).properties(height=max(320, len(correlation_order) * 36)),
+            width="stretch",
+        )
+        with st.expander("View exact correlation coefficients"):
+            st.dataframe(correlation_matrix.round(2), width="stretch")
 
     with st.expander("Download the four-chart cleaning summary"):
         st.caption("A standalone vector image is also embedded in the project README.")
